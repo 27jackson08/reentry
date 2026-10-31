@@ -44,7 +44,9 @@ try {
   sim.setDx(urlState.dx);
   const app = new AppController(sim, urlState.strokes);
   app.view = urlState.view;
-  app.running = !isTest;
+  // Respect reduced motion: load paused, with the Run button to opt in.
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  app.running = !isTest && !reducedMotion;
 
   const shareUrl = () =>
     `${location.origin}${location.pathname}${encodeUrlState({
