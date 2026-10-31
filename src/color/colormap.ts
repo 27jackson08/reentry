@@ -48,6 +48,17 @@ function lerpHue(h0: number, h1: number, t: number): number {
   return (h0 + d * t + 360) % 360;
 }
 
+/** CSS gradient string for a legend bar sampled from the stops. */
+export function cssGradient(stops: readonly Stop[], samples = 12): string {
+  const parts: string[] = [];
+  for (let i = 0; i < samples; i++) {
+    const t = i / (samples - 1);
+    const [r, g, b] = oklchToSrgb(interpolate(stops, t));
+    parts.push(`rgb(${r} ${g} ${b}) ${(t * 100).toFixed(0)}%`);
+  }
+  return `linear-gradient(90deg, ${parts.join(', ')})`;
+}
+
 function interpolate(stops: readonly Stop[], t: number): Oklch {
   const first = stops[0]!;
   const last = stops[stops.length - 1]!;
@@ -92,9 +103,9 @@ export const VOLTAGE_STOPS: readonly Stop[] = [
 
 /** Constant-lightness hue sweep for phase: every angle equally weighted. */
 export const PHASE_STOPS: readonly Stop[] = [
-  { at: 0.0, color: { l: 0.7, c: 0.13, h: 0 } },
-  { at: 0.25, color: { l: 0.7, c: 0.13, h: 90 } },
-  { at: 0.5, color: { l: 0.7, c: 0.13, h: 180 } },
-  { at: 0.75, color: { l: 0.7, c: 0.13, h: 270 } },
-  { at: 1.0, color: { l: 0.7, c: 0.13, h: 360 } },
+  { at: 0.0, color: { l: 0.62, c: 0.17, h: 20 } },
+  { at: 0.25, color: { l: 0.62, c: 0.17, h: 110 } },
+  { at: 0.5, color: { l: 0.62, c: 0.17, h: 200 } },
+  { at: 0.75, color: { l: 0.62, c: 0.17, h: 290 } },
+  { at: 1.0, color: { l: 0.62, c: 0.17, h: 380 } },
 ];

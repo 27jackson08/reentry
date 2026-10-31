@@ -16,21 +16,26 @@ import {
 import { addStroke, applyStroke, rasterize, tissueMask, type Stroke } from '../protocol/scar';
 import { pseudoEcg, type Electrode } from '../ecg/pseudoEcg';
 import type { EcgSample } from '../ecg/EcgTrace';
+import { pushSample } from '../ecg/ecgBuffer';
 
 export type TissueStatus = 'quiescent' | 'inducing' | 'active' | 'induction failed';
 export type Tool = 'stimulate' | 'scar' | 'erase';
 
 const ACTIVE_THRESHOLD = 0.5;
 const SHOCK_DURATION_MS = 5;
-/** 100 steps = 10 ms per frame: 0.6× real time at 60 fps on a mid-range GPU. Auto-throttled in main.ts. */
-const DEFAULT_STEPS_PER_FRAME = 100;
+/** 10 ms of simulated time per frame: 0.6× real time at 60 fps on a mid-range GPU. Auto-throttled in main.ts. */
+const DEFAULT_MS_PER_FRAME = 10;
+export const ECG_WINDOW_MS = 4000;
+/** While S1-S2 is waiting on the probe, step in short chunks so S2 timing does not depend on playback speed. */
+const PROTOCOL_CHUNK_MS = 2;
 const DEFAULT_BRUSH = 0.04;
 const ELECTRODE: Electrode = { x: 0.5, y: 0.5, heightCm: 2 };
 
 export class AppController {
   readonly sim: Simulation;
   running = true;
-  stepsPerFrame = DEFAULT_STEPS_PER_FRAME;
+  /** Simulated milliseconds advanced per animation frame; steps follow from the preset's dt. */
+  msPerFrame = DEFAULT_MS_PER_FRAME;
   view: ViewMode = 'voltage';
   shockCurrent = 0.3;
   tool: Tool = 'stimulate';
@@ -38,7 +43,6 @@ export class AppController {
   syncProbe = false;
   brushRadius = DEFAULT_BRUSH;
   private protocol: S1S2State | null = null;
-  private probe: Float32Array | null = null;
   private _strokes: readonly Stroke[] = [];
   private mask: Uint8Array;
   activity = 0;
@@ -46,6 +50,7 @@ export class AppController {
   lastTickMs = 0;
   /** Most recent pseudo-ECG sample, or null before the first tick. */
   lastEcg: EcgSample | null = null;
+  private _ecgSamples: readonly EcgSample[] = [];
 
   constructor(sim: Simulation, strokes: readonly Stroke[] = []) {
     this.sim = sim;
@@ -59,6 +64,15 @@ export class AppController {
 
   get strokes(): readonly Stroke[] {
     return this._strokes;
+  }
+
+  /** Pseudo-ECG samples inside the last ECG_WINDOW_MS. */
+  get ecgSamples(): readonly EcgSample[] {
+    return this._ecgSamples;
+  }
+
+  get stepsPerFrame(): number {
+    return Math.max(1, Math.round(this.msPerFrame / this.sim.dt));
   }
 
   get status(): TissueStatus {
@@ -77,6 +91,7 @@ export class AppController {
     this.protocol = null;
     this.activity = 0;
     this.lastEcg = null;
+    this._ecgSamples = [];
   }
 
   planeWave(): void {
@@ -99,8 +114,12 @@ export class AppController {
     this.running = true;
   }
 
+  /** Incremented on every shock so the UI can flash without an event bus. */
+  shockCount = 0;
+
   shock(): void {
     this.sim.applyShock(this.shockCurrent, SHOCK_DURATION_MS);
+    this.shockCount++;
   }
 
   /** Apply the current tool at a uv position (pointer down or drag). */
@@ -136,24 +155,52 @@ export class AppController {
   /** Advance the simulation by one animation frame's worth of steps. */
   tick(): void {
     this.lastTickMs = 0;
-    if (!this.running || this.stepsPerFrame === 0) return;
-    this.sim.step(this.stepsPerFrame);
-    this.lastTickMs = this.stepsPerFrame * this.sim.dt;
+    if (!this.running) return;
+    if (this.isInducing) {
+      this.tickInducing();
+      return;
+    }
+    const steps = this.stepsPerFrame;
+    this.sim.step(steps);
+    this.lastTickMs = steps * this.sim.dt;
     const probe = this.syncProbe ? this.sim.probe() : this.sim.probeAsync();
     if (!probe) return;
-    this.probe = probe;
-    this.activity = activeFraction(this.probe, PROBE_SIZE, ACTIVE_THRESHOLD);
+    this.readProbe(probe);
+  }
+
+  private get isInducing(): boolean {
+    return (
+      this.protocol !== null && this.protocol.phase !== 'done' && this.protocol.phase !== 'failed'
+    );
+  }
+
+  /** Same simulated time per frame, but probed synchronously every PROTOCOL_CHUNK_MS. */
+  private tickInducing(): void {
+    const chunkSteps = Math.max(1, Math.round(PROTOCOL_CHUNK_MS / this.sim.dt));
+    let remaining = this.stepsPerFrame;
+    while (remaining > 0) {
+      const steps = Math.min(chunkSteps, remaining);
+      this.sim.step(steps);
+      remaining -= steps;
+      this.lastTickMs += steps * this.sim.dt;
+      this.readProbe(this.sim.probe());
+      if (!this.isInducing) break;
+    }
+    if (remaining > 0) {
+      this.sim.step(remaining);
+      this.lastTickMs += remaining * this.sim.dt;
+    }
+  }
+
+  private readProbe(probe: Float32Array): void {
+    this.activity = activeFraction(probe, PROBE_SIZE, ACTIVE_THRESHOLD);
     this.lastEcg = {
       t: this.sim.timeMs,
-      phi: pseudoEcg(this.probe, PROBE_SIZE, this.sim.sideCm, ELECTRODE),
+      phi: pseudoEcg(probe, PROBE_SIZE, this.sim.sideCm, ELECTRODE),
     };
+    this._ecgSamples = pushSample(this._ecgSamples, this.lastEcg, ECG_WINDOW_MS);
     if (this.protocol) {
-      const u = probeMeanU(
-        this.probe,
-        PROBE_SIZE,
-        DEFAULT_S1S2.probeSite.x,
-        DEFAULT_S1S2.probeSite.y,
-      );
+      const u = probeMeanU(probe, PROBE_SIZE, DEFAULT_S1S2.probeSite.x, DEFAULT_S1S2.probeSite.y);
       const { state, actions } = advanceS1S2(this.protocol, DEFAULT_S1S2, this.sim.timeMs, u);
       this.protocol = state;
       this.apply(actions);

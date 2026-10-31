@@ -86,7 +86,7 @@ describe('AppController', () => {
 
   test('tick steps the simulation, reads the probe, and reports activity', () => {
     const { sim, app } = make();
-    app.stepsPerFrame = 5;
+    app.msPerFrame = 0.5;
     sim.probeMaxU = 0.9;
     app.tick();
     expect(sim.steps).toBe(5);
@@ -94,6 +94,15 @@ describe('AppController', () => {
     expect(app.activity).toBe(1);
     expect(app.status).toBe('active');
     expect(app.lastEcg?.t).toBeCloseTo(sim.timeMs);
+    expect(app.ecgSamples).toHaveLength(1);
+  });
+
+  test('steps per frame follow the preset time step', () => {
+    const { app } = make();
+    app.msPerFrame = 10;
+    expect(app.stepsPerFrame).toBe(100);
+    app.setPreset('set10'); // dt = 0.05
+    expect(app.stepsPerFrame).toBe(200);
   });
 
   test('tick does nothing while paused', () => {
@@ -118,10 +127,38 @@ describe('AppController', () => {
     expect(app.status).not.toBe('inducing');
   });
 
+  test('while inducing, the probe is read every 2 ms regardless of playback speed', () => {
+    const { sim, app } = make();
+    app.msPerFrame = 10;
+    let probes = 0;
+    const original = sim.probe.bind(sim);
+    sim.probe = () => {
+      probes++;
+      return original();
+    };
+    app.induce();
+    app.tick();
+    expect(sim.steps).toBe(100);
+    expect(probes).toBe(5);
+    expect(app.lastTickMs).toBeCloseTo(10);
+  });
+
+  test('S2 fires within one chunk of the wave back even at high playback speed', () => {
+    const { sim, app } = make();
+    app.msPerFrame = 20;
+    app.induce();
+    sim.probeU = 0.9;
+    app.tick(); // upstroke seen in the first chunk
+    sim.probeU = 0.2;
+    app.tick(); // wave back: S2 must land in the first chunk of this frame
+    expect(sim.stimuli).toHaveLength(2);
+    expect(app.status).not.toBe('inducing');
+  });
+
   test('induction fails after the timeout with no wave', () => {
     const { sim, app } = make();
     app.induce();
-    app.stepsPerFrame = 40;
+    app.msPerFrame = 4;
     sim.probeU = 0;
     for (let i = 0; i < 1000; i++) app.tick();
     expect(app.status).toBe('induction failed');

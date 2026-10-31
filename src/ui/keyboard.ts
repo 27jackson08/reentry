@@ -1,12 +1,13 @@
 import type { AppController } from '../app/controller';
 
-export function bindKeyboard(app: AppController): void {
+export function bindKeyboard(app: AppController, onPauseToggle: () => void): void {
   window.addEventListener('keydown', (e) => {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
     switch (e.key.toLowerCase()) {
       case ' ':
         e.preventDefault();
         app.running = !app.running;
+        onPauseToggle();
         break;
       case 'i':
         app.induce();

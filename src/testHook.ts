@@ -22,6 +22,7 @@ export interface ReentryTestHook {
   status(): TissueStatus;
   setPreset(id: string): void;
   setStepsPerFrame(n: number): void;
+  ecgSamples(): { t: number; phi: number }[];
   reset(): void;
   pause(): void;
 }
@@ -58,8 +59,9 @@ export function installTestHook(app: AppController): void {
     status: () => app.status,
     setPreset: (id) => app.setPreset(id),
     setStepsPerFrame: (n) => {
-      app.stepsPerFrame = n;
+      app.msPerFrame = n * sim.dt;
     },
+    ecgSamples: () => app.ecgSamples.map((s) => ({ t: s.t, phi: s.phi })),
     reset: () => app.reset(),
     pause: () => {
       app.running = false;

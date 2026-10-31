@@ -5,6 +5,7 @@ const [, , base, outdir] = process.argv;
 mkdirSync(outdir, { recursive: true });
 const browser = await chromium.launch({ headless: false, args: ['--ignore-gpu-blocklist'] });
 const shots = [
+  { name: 'rotor-set1', preset: 'set1', ms: 5000, scar: false },
   { name: 'rotor-set8', preset: 'set8', ms: 4000, scar: false },
   { name: 'fibrillation-set3', preset: 'set3', ms: 3000, scar: false },
   { name: 'anchored-set8', preset: 'set8', ms: 5000, scar: true },
@@ -34,9 +35,7 @@ const page = await browser.newPage({
   viewport: { width: 1280, height: 860 },
   deviceScaleFactor: 1,
 });
-await page.goto(`${base}/?preset=set8`);
-await page.waitForTimeout(400);
-await page.click('#induce');
-await page.waitForTimeout(7000);
+await page.goto(`${base}/`); // auto-induces
+await page.waitForTimeout(9000);
 await page.screenshot({ path: `${outdir}/ui.png` });
 await browser.close();

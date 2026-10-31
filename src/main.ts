@@ -4,6 +4,7 @@ import { Simulation } from './gpu/simulation';
 import { presetById } from './model/presets';
 import { decodeUrlState, encodeUrlState } from './state/urlState';
 import { bindControls } from './ui/controls';
+import { bindHud } from './ui/hud';
 import { bindKeyboard } from './ui/keyboard';
 import { bindPointer } from './ui/pointer';
 import './styles/tokens.css';
@@ -58,11 +59,19 @@ try {
     })}`;
 
   const controls = bindControls(app, shareUrl);
-  bindKeyboard(app);
+  const hud = bindHud(app, canvas);
+
+  // A shared link should be moving within a second. Reduced motion opts out.
+  const AUTO_INDUCE_DELAY_MS = 700;
+  if (!isTest && !reducedMotion) window.setTimeout(() => app.induce(), AUTO_INDUCE_DELAY_MS);
+  bindKeyboard(app, controls.syncPause);
   bindPointer(canvas, app);
 
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) app.running = false;
+    if (document.hidden) {
+      app.running = false;
+      controls.syncPause();
+    }
   });
 
   const sheetSelect = document.querySelector<HTMLSelectElement>('#sheet');
@@ -86,19 +95,19 @@ try {
   }
 
   // Auto-throttle: if frames keep taking longer than ~25 ms, halve the work per
-  // frame (down to 10 steps) so slower GPUs stay smooth. Users can raise it back.
+  // frame (down to 1 ms) so slower GPUs stay smooth. Users can raise it back.
   const SLOW_FRAME_MS = 25;
   const SLOW_FRAMES_BEFORE_THROTTLE = 12;
-  const MIN_STEPS = 10;
+  const MIN_MS_PER_FRAME = 1;
   let slowFrames = 0;
   let lastFrameAt = performance.now();
 
   const frame = (now: number) => {
     const elapsed = now - lastFrameAt;
     lastFrameAt = now;
-    if (app.running && elapsed > SLOW_FRAME_MS && app.stepsPerFrame > MIN_STEPS) {
+    if (app.running && elapsed > SLOW_FRAME_MS && app.msPerFrame > MIN_MS_PER_FRAME) {
       if (++slowFrames >= SLOW_FRAMES_BEFORE_THROTTLE) {
-        controls.setSteps(Math.max(MIN_STEPS, Math.floor(app.stepsPerFrame / 2)));
+        controls.setMsPerFrame(Math.max(MIN_MS_PER_FRAME, Math.floor(app.msPerFrame / 2)));
         slowFrames = 0;
       }
     } else {
@@ -107,7 +116,7 @@ try {
     resize(canvas);
     app.tick();
     app.render(canvas.width, canvas.height);
-    controls.update();
+    hud.update();
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);

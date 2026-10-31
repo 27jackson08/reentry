@@ -17,56 +17,168 @@ body {
   font-size: var(--text-base);
   line-height: 1.4;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 18rem;
+  grid-template-columns: minmax(0, 1fr) 19rem;
   grid-template-rows: auto minmax(0, 1fr);
   grid-template-areas:
     'head rail'
     'stage rail';
-  gap: var(--space-3);
-  padding: var(--space-3);
+  column-gap: var(--space-4);
+  row-gap: var(--space-2);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
   height: 100vh;
 }
 
+/* Masthead */
 .masthead {
   grid-area: head;
   display: flex;
   align-items: baseline;
   gap: var(--space-3);
+  min-height: 2rem;
 }
 
 .masthead h1 {
   margin: 0;
   font-size: 1.25rem;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .tagline {
   margin: 0;
   color: var(--color-text-muted);
+  font-size: var(--text-small);
 }
 
+/* Stage: tissue, instrument strip, scope */
 .stage {
   grid-area: stage;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) auto auto;
   justify-items: center;
   gap: var(--space-2);
   min-height: 0;
 }
 
-#tissue {
+.tissue-wrap {
+  position: relative;
   height: 100%;
   max-width: 100%;
   aspect-ratio: 1;
+  min-height: 0;
+}
+
+#tissue {
+  width: 100%;
+  height: 100%;
   display: block;
   touch-action: none;
   cursor: crosshair;
+  box-shadow:
+    0 0 0 1px oklch(from var(--color-text) l c h / 0.08),
+    0 30px 60px -30px oklch(0% 0 0 / 0.8);
 }
 
 #tissue[data-tool='scar'],
 #tissue[data-tool='erase'] {
   cursor: cell;
+}
+
+#shock-flash {
+  position: absolute;
+  inset: 0;
+  background: oklch(98% 0.02 90);
+  opacity: 0;
+  pointer-events: none;
+}
+
+#shock-flash.active {
+  animation: shock-flash 260ms var(--ease-out);
+}
+
+@keyframes shock-flash {
+  from {
+    opacity: 0.85;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.overlay {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--color-text);
+  background: oklch(from var(--color-surface) l c h / 0.6);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+
+.overlay.scale {
+  left: var(--space-2);
+  bottom: var(--space-2);
+}
+
+#scale-bar {
+  display: inline-block;
+  height: 2px;
+  background: var(--color-text);
+  box-shadow:
+    0 -3px 0 -1px var(--color-text),
+    0 3px 0 -1px var(--color-text);
+}
+
+.overlay.legend {
+  right: var(--space-2);
+  bottom: var(--space-2);
+}
+
+#legend-bar {
+  display: inline-block;
+  width: 5rem;
+  height: 0.5rem;
+  border-radius: 2px;
+}
+
+.instrument {
+  margin: 0;
+  width: 100%;
+  max-width: 48rem;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+}
+
+.instrument div {
+  padding: var(--space-1) var(--space-2);
+  border-left: 2px solid oklch(from var(--color-text) l c h / 0.12);
+}
+
+.instrument dt {
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.instrument dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+#hud-status[data-status='active'] {
+  color: var(--color-accent);
+}
+
+#hud-status[data-status='induction failed'] {
+  color: var(--color-danger);
 }
 
 .scope {
@@ -86,24 +198,26 @@ body {
 .scope figcaption {
   margin-top: var(--space-1);
   font-family: var(--font-mono);
-  font-size: var(--text-small);
+  font-size: 0.7rem;
   color: var(--color-text-muted);
 }
 
+/* Control rail */
 .rail {
   grid-area: rail;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
   overflow-y: auto;
+  padding-right: var(--space-1);
   font-size: 0.9rem;
 }
 
 .group h2 {
   margin: 0 0 var(--space-2);
-  font-size: var(--text-small);
+  font-size: 0.7rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-text-muted);
 }
@@ -135,9 +249,15 @@ button:active {
   transform: translateY(1px);
 }
 
+button[aria-pressed='true'] {
+  background: oklch(from var(--color-accent) l c h / 0.18);
+  border-color: var(--color-accent);
+}
+
 button:focus-visible,
 select:focus-visible,
-input:focus-visible {
+input:focus-visible,
+a:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
@@ -149,9 +269,17 @@ button.primary {
   font-weight: 600;
 }
 
+button.primary:hover {
+  background: oklch(from var(--color-accent) calc(l + 0.05) c h);
+}
+
 button.danger {
   border-color: var(--color-danger);
   color: var(--color-danger);
+}
+
+button.danger:hover {
+  background: oklch(from var(--color-danger) l c h / 0.15);
 }
 
 .field,
@@ -190,31 +318,40 @@ input[type='range'] {
   font-size: var(--text-small);
 }
 
-.hud dl {
-  margin: 0;
-  display: grid;
-  gap: var(--space-1);
+.keys {
+  margin-top: auto;
+  padding-top: var(--space-3);
+  border-top: 1px solid oklch(from var(--color-text) l c h / 0.1);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.8;
 }
 
-.hud dl div {
-  display: flex;
-  justify-content: space-between;
-}
-
-.hud dt {
+.keys a {
+  display: block;
   color: var(--color-text-muted);
 }
 
-.hud dd {
-  margin: 0;
+kbd {
   font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 0 0.3em;
+  border: 1px solid oklch(from var(--color-text) l c h / 0.2);
+  border-radius: 3px;
 }
 
 #unsupported {
-  max-width: 36rem;
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
   padding: var(--space-4);
   background: var(--color-surface-raised);
   border-left: 3px solid var(--color-danger);
+}
+
+#unsupported[hidden] {
+  display: none;
 }
 
 @media (max-width: 48rem) {
@@ -225,8 +362,19 @@ input[type='range'] {
       'stage'
       'rail';
     height: auto;
+    padding: var(--space-3);
   }
-  #tissue {
+
+  .tissue-wrap {
     width: 100%;
+    height: auto;
+  }
+
+  .instrument {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .keys {
+    margin-top: var(--space-2);
   }
 }

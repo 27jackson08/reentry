@@ -51,6 +51,27 @@ function preset(
  */
 export const PRESETS: readonly Preset[] = [
   preset(
+    'set1',
+    'Set 1 · Modified BR (MBR)',
+    'Stable rotor. Flat restitution: one spiral that keeps its period, a monomorphic tachycardia on the ECG. Switch to set 3 to see it break up.',
+    FENTON2002,
+    {
+      tauVPlus: 3.33,
+      tauVMinusLow: 19.6,
+      tauVMinusHigh: 1000,
+      tauWPlus: 667,
+      tauWMinus: 11,
+      tauD: 0.25,
+      tau0: 8.3,
+      tauR: 50,
+      tauSi: 45,
+      k: 10,
+      uCsi: 0.85,
+      uC: 0.13,
+      uV: 0.055,
+    },
+  ),
+  preset(
     'set3',
     'Set 3 · Beeler-Reuter (BR)',
     'Breaks up. The original Beeler-Reuter fit has steep restitution (APD90 98 → 268 ms across the table in docs/validation.md): the first rotor fragments into fibrillation within seconds, and in a bounded sheet it can extinguish itself.',
@@ -69,27 +90,6 @@ export const PRESETS: readonly Preset[] = [
       uCsi: 0.85,
       uC: 0.13,
       uV: 0.04,
-    },
-  ),
-  preset(
-    'set1',
-    'Set 1 · Modified BR (MBR)',
-    'Stable rotor. Flat restitution: one spiral that keeps its period. The clean baseline.',
-    FENTON2002,
-    {
-      tauVPlus: 3.33,
-      tauVMinusLow: 19.6,
-      tauVMinusHigh: 1000,
-      tauWPlus: 667,
-      tauWMinus: 11,
-      tauD: 0.25,
-      tau0: 8.3,
-      tauR: 50,
-      tauSi: 45,
-      k: 10,
-      uCsi: 0.85,
-      uC: 0.13,
-      uV: 0.055,
     },
   ),
   preset(
@@ -279,7 +279,7 @@ export const PRESETS: readonly Preset[] = [
   ),
 ];
 
-export const DEFAULT_PRESET_ID = 'set3';
+export const DEFAULT_PRESET_ID = 'set1';
 
 export function presetById(id: string): Preset {
   const found = PRESETS.find((p) => p.id === id);
