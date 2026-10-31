@@ -80,6 +80,8 @@ About 7 % slow at the default. Action potential duration is unaffected (it is a 
 
 **S1-S2 cross-field induction.** S1 is a 2 ms, 0.3 current pulse in a strip on the left edge, launching a plane wave rightward. A probe on the S2 boundary (x = 0.5, y = 0.25) watches the mean voltage in a 64×64 downsample of the sheet. When that voltage first drops below 0.5 (the wave back has reached the boundary), S2 fires the same pulse into the lower-left quadrant. While the protocol is waiting, the sheet is stepped in 2 ms chunks with a synchronous probe after each, so S2 timing does not depend on playback speed (a 10 ms late S2 moves the rotor's birthplace enough to change whether it drifts into an edge). Tissue to the right of the boundary is still at plateau and blocks; tissue to the left repolarized earlier and conducts; the free end of the S2 front at the corner curls into a rotor. The same timing rule induces reentry in all eleven presets on the default sheet (`scripts/survey.mjs`).
 
+**Antitachycardia pacing.** A burst of point stimuli (default ten, 2 ms, current 0.3) at a chosen cycle length from a site near the top-left corner, scheduled inside the GPU step loop so each beat lands on the time step. Pacing faster than the arrhythmia entrains tissue outward from the site; termination requires the paced front to enter the reentrant circuit's excitable gap and collide with the rotor. In this model a free (functional) rotor was not terminated at any cycle length tried (200–360 ms, ten beats, see docs/RESULTS.md); it is pushed and drifts. Reentry anchored on a scar is the classical ATP target and is tested there too.
+
 **Defibrillation.** A uniform transmembrane current for 5 ms, amplitude set by the slider. In a monodomain model a uniform field cannot create the virtual electrodes that real shocks rely on (those need the bidomain), so this is the standard teaching simplification: the shock excites every cell that can be excited, leaving nothing for the fronts to invade. Weak shocks excite only recovered tissue and can fail or even re-induce; strong shocks terminate. The Playwright suite checks both outcomes.
 
 **ECG rhythm readout.** The dominant cycle length is the earliest strong peak of the autocorrelation of the last 2.5 s of pseudo-ECG (harmonics at 2T and 3T are as tall as the peak at T, so the earliest within 85 % of the tallest wins). Regularity is the autocorrelation at that lag; at or above 0.65 the label reads "regular". Measured on this implementation: set 1's rotor scores 0.85–0.9 at 395 ms; set 3's fibrillation scores 0.2–0.65 with a wandering cycle length.
@@ -88,7 +90,14 @@ About 7 % slow at the default. Action potential duration is unaffected (it is a 
 
 **Pseudo-ECG.** φ(r_e) = −∫ ∇u · ∇(1/|r − r_e|) dA over tissue, with the electrode 2 cm above the sheet centre, evaluated on the 64×64 downsample each frame (Plonsey & Barr). It is unscaled; the scope auto-gains. Unit tests check zero for uniform tissue, sign reversal with electrode position, and linearity.
 
-## 5. Observed behaviour
+## 5. Experiments
+
+Two experiments are run by scripts in `scripts/experiments/` against the deployed model; the CSVs, figures and discussion are in `docs/RESULTS.md`.
+
+- **Critical mass.** For five parameter sets, sheets of 5 to 20 cm at fixed 0.4 mm spacing, induced identically, survival time of activity (8 s cap).
+- **Defibrillation threshold.** Shock amplitude 0.02 to 0.6 at three timings, for the stable set 1 rotor and set 3 fibrillation; termination is activity zero 1.5 s after the shock.
+
+## 6. Observed behaviour
 
 Each preset was induced on the default sheet and run for 6 s of simulated time. Descriptions in the preset menu report what happened, not what the 2002 paper's section headings promise. Several of the paper's breakup mechanisms need longer runs, larger sheets, specific τ_d sweeps, or three dimensions, and were not reproduced here.
 
@@ -106,9 +115,9 @@ Each preset was induced on the default sheet and run for 6 s of simulated time. 
 | Set 10 (GP) | stable rotor                                                            |
 | MLR-I       | stable rotor, large core                                                |
 
-## 6. What this is not
+## 7. What this is not
 
-- Not a heart. A flat, isotropic, homogeneous sheet with no fibre direction, no thickness, no anatomy, no Purkinje system, no autonomic input.
+- Not a heart. A flat, homogeneous sheet with at most one uniform fibre direction, no thickness, no anatomy, no Purkinje system, no autonomic input.
 - Not a cell. Three variables stand in for dozens of ionic currents; the model is fit to reproduce action potential shape, restitution and conduction velocity of specific ionic models, nothing else.
 - Not a bidomain. Shocks are a uniform current, see above.
 - Not at the papers' resolution by default. See section 3.

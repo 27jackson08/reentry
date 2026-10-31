@@ -17,6 +17,8 @@ class StubSim {
   resets = 0;
   probeU = 0;
   probeMaxU = 0;
+  fibres = { ratio: 1, angleDeg: 0 };
+  pacing: unknown = null;
 
   get dt() {
     return this.preset.dt;
@@ -35,6 +37,21 @@ class StubSim {
   }
   setDx(dx: number | null) {
     this.dxOverride = dx;
+  }
+  setFibres(f: { ratio: number; angleDeg: number }) {
+    this.fibres = f;
+  }
+  get currentFibres() {
+    return this.fibres;
+  }
+  startPacing(config: unknown) {
+    this.pacing = config;
+  }
+  stopPacing() {
+    this.pacing = null;
+  }
+  get isPacing() {
+    return this.pacing !== null;
   }
   reset() {
     this.resets++;
@@ -242,6 +259,28 @@ describe('AppController', () => {
     expect(app.activity).toBe(0);
     expect(app.lastEcg).toBeNull();
     expect(app.status).toBe('quiescent');
+  });
+
+  test('pace starts a burst at the configured cycle length and fibres pass through', () => {
+    const { sim, app } = make();
+    app.pacingCycleMs = 280;
+    app.pace();
+    expect(app.isPacing).toBe(true);
+    expect((sim.pacing as { cycleLengthMs: number }).cycleLengthMs).toBe(280);
+    app.setFibres({ ratio: 4, angleDeg: 30 });
+    expect(app.fibres).toEqual({ ratio: 4, angleDeg: 30 });
+  });
+
+  test('setMaskDirect replaces strokes and marks the mask as image-derived', () => {
+    const { sim, app } = make();
+    app.tool = 'scar';
+    app.paint(0.5, 0.5);
+    app.setMaskDirect(new Uint8Array(32 * 32).fill(1));
+    expect(app.strokes).toHaveLength(0);
+    expect(app.maskFromImage).toBe(true);
+    expect(sim.masks).toHaveLength(2);
+    app.clearScar();
+    expect(app.maskFromImage).toBe(false);
   });
 
   test('setPreset and planeWave delegate to the simulation', () => {

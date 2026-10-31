@@ -5,6 +5,7 @@ import { presetById } from './model/presets';
 import { decodeUrlState, encodeUrlState } from './state/urlState';
 import { bindControls } from './ui/controls';
 import { bindHud } from './ui/hud';
+import { bindTour } from './ui/tour';
 import { bindKeyboard } from './ui/keyboard';
 import { bindPointer } from './ui/pointer';
 import './styles/tokens.css';
@@ -43,7 +44,7 @@ try {
   const { gl } = createContext(canvas);
   const sim = new Simulation(gl, presetById(urlState.preset), size);
   sim.setDx(urlState.dx);
-  const app = new AppController(sim, urlState.strokes);
+  const app = new AppController(sim, urlState.strokes, urlState.fibres);
   app.view = urlState.view;
   // Respect reduced motion: load paused, with the Run button to opt in.
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -56,10 +57,12 @@ try {
       dx: sim.dx,
       view: app.view,
       strokes: app.strokes,
+      fibres: app.fibres,
     })}`;
 
   const controls = bindControls(app, shareUrl);
   const hud = bindHud(app, canvas);
+  bindTour(app);
 
   // A shared link should be moving within a second. Reduced motion opts out.
   const AUTO_INDUCE_DELAY_MS = 700;

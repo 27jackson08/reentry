@@ -21,6 +21,9 @@ export function bindKeyboard(app: AppController, onPauseToggle: () => void): voi
       case 'r':
         app.reset();
         break;
+      case 'p':
+        app.pace();
+        break;
     }
   });
 }

@@ -2,6 +2,7 @@
 import type { ViewMode } from '../gpu/simulation';
 import { DEFAULT_PRESET_ID, PRESETS } from '../model/presets';
 import { decodeStrokes, encodeStrokes, type Stroke } from '../protocol/scar';
+import { ISOTROPIC, MAX_RATIO, type Fibres } from '../model/anisotropy';
 
 export interface UrlState {
   readonly preset: string;
@@ -9,6 +10,7 @@ export interface UrlState {
   readonly dx: number;
   readonly view: ViewMode;
   readonly strokes: readonly Stroke[];
+  readonly fibres: Fibres;
 }
 
 export const DEFAULT_URL_STATE: UrlState = {
@@ -17,6 +19,7 @@ export const DEFAULT_URL_STATE: UrlState = {
   dx: 0.04,
   view: 'voltage',
   strokes: [],
+  fibres: ISOTROPIC,
 };
 
 const SIZES = new Set([128, 256, 512, 1024]);
@@ -36,6 +39,19 @@ export function decodeUrlState(search: string): UrlState {
     dx: dx >= DX_MIN && dx <= DX_MAX ? dx : DEFAULT_URL_STATE.dx,
     view: VIEWS.includes(view as ViewMode) ? (view as ViewMode) : DEFAULT_URL_STATE.view,
     strokes: decodeStrokes(q.get('scar') ?? ''),
+    fibres: decodeFibres(q.get('aniso'), q.get('angle')),
+  };
+}
+
+function decodeFibres(ratioText: string | null, angleText: string | null): Fibres {
+  const ratio = Number(ratioText);
+  const angle = Number(angleText);
+  return {
+    ratio: ratio >= 1 && ratio <= MAX_RATIO ? ratio : ISOTROPIC.ratio,
+    angleDeg:
+      Number.isFinite(angle) && angleText !== null
+        ? ((angle % 180) + 180) % 180
+        : ISOTROPIC.angleDeg,
   };
 }
 
@@ -46,6 +62,10 @@ export function encodeUrlState(state: UrlState): string {
   if (state.dx !== DEFAULT_URL_STATE.dx) q.set('dx', String(state.dx));
   if (state.view !== DEFAULT_URL_STATE.view) q.set('view', state.view);
   if (state.strokes.length > 0) q.set('scar', encodeStrokes(state.strokes));
+  if (state.fibres.ratio !== 1) {
+    q.set('aniso', String(state.fibres.ratio));
+    if (state.fibres.angleDeg !== 0) q.set('angle', String(state.fibres.angleDeg));
+  }
   const s = q.toString();
   return s ? `?${s}` : '';
 }

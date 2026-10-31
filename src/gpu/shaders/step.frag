@@ -8,7 +8,9 @@ uniform sampler2D uState; // r = u, g = v, b = w, a = mask (1 tissue, 0 scar) as
 uniform sampler2D uMask;  // r = 1 tissue, 0 scar; authoritative, propagated into alpha each step
 uniform vec2 uTexel;      // 1 / grid size
 uniform float uDt;        // ms
-uniform float uDiffOverDx2; // D / dx²
+uniform float uDiffOverDx2; // D / dx² (isotropic path)
+uniform int uAnisotropic;   // 1 to use the tensor path
+uniform vec3 uTensorOverDx2; // (Dxx, Dxy, Dyy) / dx²
 
 // Rates (1/τ). A disabled current or gate has rate 0.
 uniform float invTauVPlus, invTauVMinusLow, invTauVMinusHigh;
@@ -58,11 +60,26 @@ void main() {
   float v = s.g;
   float w = s.b;
 
-  float edges = neighbour(vec2(1.0, 0.0), u) + neighbour(vec2(-1.0, 0.0), u)
-              + neighbour(vec2(0.0, 1.0), u) + neighbour(vec2(0.0, -1.0), u);
-  float corners = neighbour(vec2(1.0, 1.0), u) + neighbour(vec2(-1.0, 1.0), u)
-                + neighbour(vec2(1.0, -1.0), u) + neighbour(vec2(-1.0, -1.0), u);
-  float lap = uDiffOverDx2 * (4.0 * edges + corners) / 6.0;
+  float e = neighbour(vec2(1.0, 0.0), u);
+  float wv = neighbour(vec2(-1.0, 0.0), u);
+  float n = neighbour(vec2(0.0, 1.0), u);
+  float sv = neighbour(vec2(0.0, -1.0), u);
+  float ne = neighbour(vec2(1.0, 1.0), u);
+  float nw = neighbour(vec2(-1.0, 1.0), u);
+  float se = neighbour(vec2(1.0, -1.0), u);
+  float sw = neighbour(vec2(-1.0, -1.0), u);
+  float lap;
+  if (uAnisotropic == 1) {
+    // ∇·(D∇u) for a constant tensor: Dxx u_xx + 2 Dxy u_xy + Dyy u_yy.
+    // Second differences are masked (no-flux); the mixed term uses the
+    // masked corner differences, which drops it at walls.
+    float uxx = e + wv;
+    float uyy = n + sv;
+    float uxy = (ne - nw - se + sw) * 0.25;
+    lap = uTensorOverDx2.x * uxx + 2.0 * uTensorOverDx2.y * uxy + uTensorOverDx2.z * uyy;
+  } else {
+    lap = uDiffOverDx2 * (4.0 * (e + wv + n + sv) + (ne + nw + se + sw)) / 6.0;
+  }
 
   bool above = u >= uC;
   float jfi = above ? -v * invTauD * (1.0 - u) * (u - uC) : 0.0;

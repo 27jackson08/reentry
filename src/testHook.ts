@@ -25,6 +25,9 @@ export interface ReentryTestHook {
   ecgSamples(): { t: number; phi: number }[];
   rotors(): { x: number; y: number; charge: number }[];
   benchmarkProbe(): Record<string, number>;
+  pace(cycleLengthMs: number, beats?: number, site?: { cx: number; cy: number }): void;
+  isPacing(): boolean;
+  setFibres(ratio: number, angleDeg: number): void;
   reset(): void;
   pause(): void;
 }
@@ -66,6 +69,15 @@ export function installTestHook(app: AppController): void {
     ecgSamples: () => app.ecgSamples.map((s) => ({ t: s.t, phi: s.phi })),
     rotors: () => app.rotors.map((r) => ({ x: r.x, y: r.y, charge: r.charge })),
     benchmarkProbe: () => sim.benchmarkProbe(),
+    pace: (cycleLengthMs, beats, site) => {
+      app.pacingCycleMs = cycleLengthMs;
+      if (beats) app.pacingBeats = beats;
+      if (site) app.pacingSite = { ...site, rx: 0.03, ry: 0.03 };
+      app.pace();
+      app.running = false;
+    },
+    isPacing: () => app.isPacing,
+    setFibres: (ratio, angleDeg) => app.setFibres({ ratio, angleDeg }),
     reset: () => app.reset(),
     pause: () => {
       app.running = false;

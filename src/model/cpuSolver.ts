@@ -6,6 +6,7 @@
  * Every operation returns a new Sheet; nothing is mutated.
  */
 import { REST, stepCell, type FkParams } from './fentonKarma';
+import { diffusionTensor, ISOTROPIC, type Fibres } from './anisotropy';
 
 export interface Sheet {
   readonly width: number;
@@ -68,7 +69,35 @@ export function laplacian9(s: Sheet, i: number, j: number): number {
   return sum / (STENCIL_NORM * s.dx * s.dx);
 }
 
-export function stepSheet(s: Sheet, p: FkParams, dt: number, diffusion: number): Sheet {
+/** Masked neighbour difference u(i+di, j+dj) − u(i, j), zero outside the sheet or in scar. */
+function diff(s: Sheet, i: number, j: number, di: number, dj: number): number {
+  const ni = i + di;
+  const nj = j + dj;
+  if (ni < 0 || nj < 0 || ni >= s.width || nj >= s.height) return 0;
+  const idx = nj * s.width + ni;
+  if (s.mask[idx] === 0) return 0;
+  return (s.u[idx] ?? 0) - (s.u[j * s.width + i] ?? 0);
+}
+
+/** ∇·(D∇u) for a constant tensor, matching the shader's anisotropic branch. */
+export function divDGrad(s: Sheet, i: number, j: number, dAlong: number, fibres: Fibres): number {
+  const t = diffusionTensor(dAlong, fibres);
+  const dx2 = s.dx * s.dx;
+  const uxx = diff(s, i, j, 1, 0) + diff(s, i, j, -1, 0);
+  const uyy = diff(s, i, j, 0, 1) + diff(s, i, j, 0, -1);
+  const uxy =
+    (diff(s, i, j, 1, 1) - diff(s, i, j, -1, 1) - diff(s, i, j, 1, -1) + diff(s, i, j, -1, -1)) *
+    0.25;
+  return (t.dxx * uxx + 2 * t.dxy * uxy + t.dyy * uyy) / dx2;
+}
+
+export function stepSheet(
+  s: Sheet,
+  p: FkParams,
+  dt: number,
+  diffusion: number,
+  fibres: Fibres = ISOTROPIC,
+): Sheet {
   const n = s.width * s.height;
   const u = new Float32Array(n);
   const v = new Float32Array(n);
@@ -83,7 +112,8 @@ export function stepSheet(s: Sheet, p: FkParams, dt: number, diffusion: number):
         w[idx] = REST.w;
         continue;
       }
-      const lap = diffusion * laplacian9(s, i, j);
+      const lap =
+        fibres.ratio === 1 ? diffusion * laplacian9(s, i, j) : divDGrad(s, i, j, diffusion, fibres);
       const cell = { u: s.u[idx] ?? 0, v: s.v[idx] ?? 1, w: s.w[idx] ?? 1 };
       const next = stepCell(cell, p, dt, s.stim[idx] ?? 0, lap);
       u[idx] = next.u;

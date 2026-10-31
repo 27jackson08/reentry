@@ -15,6 +15,7 @@ describe('url state', () => {
       dx: 0.025,
       view: 'phase' as const,
       strokes: [{ x: 0.25, y: 0.75, r: 0.05, erase: false }],
+      fibres: { ratio: 1, angleDeg: 0 },
     };
     const decoded = decodeUrlState(encodeUrlState(state));
     expect(decoded.preset).toBe('set1');
@@ -39,6 +40,16 @@ describe('url state', () => {
       decodeUrlState(`?scar=${encodeStrokes([{ x: 0.5, y: 0.5, r: 0.1, erase: true }])}`)
         .strokes[0]!.erase,
     ).toBe(true);
+  });
+
+  test('fibre settings round-trip and are validated', () => {
+    const d = decodeUrlState('?aniso=4&angle=30');
+    expect(d.fibres).toEqual({ ratio: 4, angleDeg: 30 });
+    expect(encodeUrlState({ ...DEFAULT_URL_STATE, fibres: { ratio: 4, angleDeg: 30 } })).toBe(
+      '?aniso=4&angle=30',
+    );
+    expect(decodeUrlState('?aniso=99').fibres.ratio).toBe(1);
+    expect(decodeUrlState('?aniso=2&angle=200').fibres.angleDeg).toBe(20);
   });
 
   test('omits default-valued keys and empty scar from the encoded string', () => {

@@ -24,6 +24,8 @@ import {
   type Singularity,
 } from '../analysis/phaseSingularities';
 import { pushSample } from '../ecg/ecgBuffer';
+import type { PacingConfig } from '../protocol/pacing';
+import { ISOTROPIC, type Fibres } from '../model/anisotropy';
 
 export type TissueStatus = 'quiescent' | 'inducing' | 'active' | 'induction failed';
 export type Tool = 'stimulate' | 'scar' | 'erase';
@@ -36,6 +38,10 @@ export const ECG_WINDOW_MS = 4000;
 /** While S1-S2 is waiting on the probe, step in short chunks so S2 timing does not depend on playback speed. */
 const PROTOCOL_CHUNK_MS = 2;
 const DEFAULT_BRUSH = 0.04;
+const DEFAULT_PACING_SITE = { cx: 0.2, cy: 0.8, rx: 0.03, ry: 0.03 } as const;
+const DEFAULT_PACING_BEATS = 10;
+const PACING_CURRENT = 0.3;
+const PACING_DURATION_MS = 2;
 const ELECTRODE: Electrode = { x: 0.5, y: 0.5, heightCm: 2 };
 
 export class AppController {
@@ -45,6 +51,15 @@ export class AppController {
   msPerFrame = DEFAULT_MS_PER_FRAME;
   view: ViewMode = 'voltage';
   shockCurrent = 0.3;
+  /** Antitachycardia pacing cycle length. Set a little under the rotor's period. */
+  pacingCycleMs = 300;
+  pacingBeats = DEFAULT_PACING_BEATS;
+  pacingSite: {
+    readonly cx: number;
+    readonly cy: number;
+    readonly rx: number;
+    readonly ry: number;
+  } = DEFAULT_PACING_SITE;
   tool: Tool = 'stimulate';
   /** Tests step deterministically and read the probe synchronously. */
   syncProbe = false;
@@ -62,11 +77,23 @@ export class AppController {
   private probeHistory: readonly { readonly t: number; readonly u: Float32Array }[] = [];
   private _rotors: readonly Singularity[] = [];
 
-  constructor(sim: Simulation, strokes: readonly Stroke[] = []) {
+  constructor(sim: Simulation, strokes: readonly Stroke[] = [], fibres: Fibres = ISOTROPIC) {
     this.sim = sim;
     this.mask = tissueMask(sim.size);
     if (strokes.length > 0) this.setStrokes(strokes);
+    this.sim.setFibres(fibres);
   }
+
+  get fibres(): Fibres {
+    return this.sim.currentFibres;
+  }
+
+  setFibres(fibres: Fibres): void {
+    this.sim.setFibres(fibres);
+  }
+
+  /** Whether the mask came from an image rather than strokes (not shareable by link). */
+  maskFromImage = false;
 
   get preset(): Preset {
     return this.sim.currentPreset;
@@ -139,6 +166,31 @@ export class AppController {
     this.shockCount++;
   }
 
+  /** Burst of PACING_BEATS stimuli at `pacingCycleMs` from a fixed site: antitachycardia pacing. */
+  pace(): void {
+    const config: PacingConfig = {
+      site: this.pacingSite,
+      cycleLengthMs: this.pacingCycleMs,
+      beats: this.pacingBeats,
+      current: PACING_CURRENT,
+      durationMs: PACING_DURATION_MS,
+    };
+    this.sim.startPacing(config);
+    this.running = true;
+  }
+
+  get isPacing(): boolean {
+    return this.sim.isPacing;
+  }
+
+  /** Replace the scar with a mask derived from an image. Strokes are cleared. */
+  setMaskDirect(mask: Uint8Array): void {
+    this._strokes = [];
+    this.mask = mask;
+    this.maskFromImage = true;
+    this.sim.setMask(this.mask);
+  }
+
   /** Apply the current tool at a uv position (pointer down or drag). */
   paint(x: number, y: number): void {
     if (this.tool === 'stimulate') {
@@ -157,6 +209,7 @@ export class AppController {
   setStrokes(strokes: readonly Stroke[]): void {
     this._strokes = strokes.slice();
     this.mask = rasterize(this._strokes, this.sim.size);
+    this.maskFromImage = false;
     this.sim.setMask(this.mask);
   }
 
@@ -164,9 +217,9 @@ export class AppController {
     this.setStrokes([]);
   }
 
-  /** A round scar near the centre: the anchoring demo. */
+  /** A round scar where the S1-S2 tip forms: the rotor anchors and turns around it (anatomical reentry). */
   presetScar(): void {
-    this.addScarStroke({ x: 0.62, y: 0.55, r: 0.07, erase: false });
+    this.addScarStroke({ x: 0.4, y: 0.5, r: 0.06, erase: false });
   }
 
   /** Advance the simulation by one animation frame's worth of steps. */

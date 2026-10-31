@@ -22,11 +22,21 @@ A 20 cm square of simulated ventricular tissue, 512 cells on a side. Colour is m
 | -------------------------------------------------- | -------------------------------------------------------------- |
 | Stable rotor, regular tachycardia                  | https://27jackson08.github.io/reentry/                         |
 | Breakup into fibrillation (original Beeler-Reuter) | https://27jackson08.github.io/reentry/?preset=set3             |
-| Rotor anchored to a scar patch                     | https://27jackson08.github.io/reentry/?preset=set8&scar=nrjMO  |
+| Rotor anchored to a scar patch                     | https://27jackson08.github.io/reentry/?scar=ZmgAM              |
 | Phase view of a fast guinea-pig rotor              | https://27jackson08.github.io/reentry/?preset=set10&view=phase |
 | Reference grid spacing of the papers (13 cm sheet) | https://27jackson08.github.io/reentry/?n=512&dx=0.025          |
 
-Keyboard: `I` induce, `W` plane wave, `S` shock, `R` reset, `space` pause. Click the tissue to stimulate a spot. A fresh link induces a spiral on its own after a moment (not under reduced-motion settings).
+Keyboard: `I` induce, `W` plane wave, `S` shock, `P` pace, `R` reset, `space` pause. Click the tissue to stimulate a spot. A fresh link induces a spiral on its own after a moment (not under reduced-motion settings).
+
+## Results
+
+Three experiments run by script against the deployed model, with figures, CSVs and discussion in [docs/RESULTS.md](docs/RESULTS.md).
+
+![Reentry survival versus sheet size](docs/results/critical-mass.svg)
+
+- **Critical mass.** Garrey's 1914 observation in model form: the breakup sets (3, 8) need about 18 cm of tissue, roughly two wavelengths, to keep fibrillating; survival rises monotonically with size below that. The short-wavelength sets (1, 10) hold a rotor on a 5 cm sheet.
+- **Defibrillation threshold.** A sharp step at an amplitude of 0.035, the same for a stable rotor and for fibrillation and independent of timing, and exactly the current that lifts resting tissue to its excitation threshold in 5 ms. In a monodomain model the defibrillation threshold is the pacing threshold, which is the clearest statement of what the model leaves out.
+- **Antitachycardia pacing.** Entrains and resets both free and scar-anchored reentry in every one of 40 conditions, and terminates none: the excitable gap in homogeneous tissue is too wide. The success case needs a slow-conduction isthmus, which is the obvious next experiment.
 
 ## The science
 
@@ -41,8 +51,10 @@ What is checked, automatically:
 - S1-S2 produces sustained reentry; a strong shock ends it; a weak one does not.
 - The ECG rhythm readout recovers the period of a regular signal and stays quiet on a flat one.
 - The rotor detector finds exactly one phase singularity in a synthetic spiral, two of opposite charge in a pair, none in uniform tissue, and merges the spurious clusters a coarse grid produces.
+- With fibre anisotropy the GPU and CPU solvers still agree, and conduction is faster along fibres than across by about the square root of the conductivity ratio.
+- Pacing bursts land on the exact time step and stop after the last beat.
 
-What is simplified, deliberately: a flat isotropic sheet, no fibre direction, no anatomy, a monodomain shock, and a default grid spacing 60 % coarser than the papers' (costing about 7 % in conduction velocity, documented in the physics notes, with the reference spacing one click away).
+What is simplified, deliberately: a flat sheet with at most a uniform fibre direction, no anatomy, a monodomain shock, and a default grid spacing 60 % coarser than the papers' (costing about 7 % in conduction velocity, documented in the physics notes, with the reference spacing one click away).
 
 ## Running it
 

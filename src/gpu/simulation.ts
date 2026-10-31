@@ -3,6 +3,13 @@
  * step/render/probe programs and the stimulus/shock schedule.
  */
 import { REST, type FkParams } from '../model/fentonKarma';
+import {
+  advancePacing,
+  startPacing,
+  type PacingConfig,
+  type PacingState,
+} from '../protocol/pacing';
+import { diffusionTensor, type Fibres } from '../model/anisotropy';
 import type { Preset } from '../model/presets';
 import { buildLut, PHASE_STOPS, VOLTAGE_STOPS } from '../color/colormap';
 import { createProgram, drawFullscreen, type Program } from './programs';
@@ -84,6 +91,9 @@ export class Simulation {
   private dxOverride: number | null = null;
   private stimulus: Stimulus | null = null;
   private shock: Shock | null = null;
+  private pacing: PacingState | null = null;
+  private lastPacingConfig: PacingConfig | null = null;
+  private fibres: Fibres = { ratio: 1, angleDeg: 0 };
   private _timeMs = 0;
   private _steps = 0;
 
@@ -151,6 +161,7 @@ export class Simulation {
     uploadFloatTarget(this.gl, this.state.write, restState(this.size, this.mask));
     this.stimulus = null;
     this.shock = null;
+    this.pacing = null;
     this._timeMs = 0;
     this._steps = 0;
   }
@@ -166,6 +177,29 @@ export class Simulation {
   /** Inject `current` (du/dt units) inside `shape` for `durationMs` of simulated time. */
   stimulate(shape: StimulusShape, current: number, durationMs: number): void {
     this.stimulus = { shape, current, remainingMs: durationMs };
+  }
+
+  /** Start an antitachycardia pacing burst; replaces any burst in progress. */
+  startPacing(config: PacingConfig): void {
+    this.lastPacingConfig = config;
+    this.pacing = startPacing(config, this._timeMs);
+  }
+
+  stopPacing(): void {
+    this.pacing = null;
+  }
+
+  get isPacing(): boolean {
+    return this.pacing !== null;
+  }
+
+  /** Fibre direction and conductivity ratio; ratio 1 is the isotropic 9-point stencil. */
+  setFibres(fibres: Fibres): void {
+    this.fibres = fibres;
+  }
+
+  get currentFibres(): Fibres {
+    return this.fibres;
   }
 
   /** Uniform transmembrane current everywhere for `durationMs`: the defibrillation shock. */
@@ -196,6 +230,7 @@ export class Simulation {
     gl.activeTexture(gl.TEXTURE0);
 
     for (let i = 0; i < count; i++) {
+      this.firePacingIfDue();
       this.setStimulusUniforms();
       gl.bindFramebuffer(gl.FRAMEBUFFER, this.state.write.framebuffer);
       gl.bindTexture(gl.TEXTURE_2D, this.state.read.texture);
@@ -206,12 +241,26 @@ export class Simulation {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
+  private firePacingIfDue(): void {
+    if (!this.pacing) return;
+    const { fire, state } = advancePacing(this.pacing, this._timeMs);
+    this.pacing = state;
+    if (fire) {
+      const { site, current, durationMs } = this.lastPacingConfig!;
+      this.stimulus = { shape: { kind: 'ellipse', ...site }, current, remainingMs: durationMs };
+    }
+  }
+
   private setParamUniforms(p: FkParams, dt: number): void {
     const { gl } = this;
     const u = this.stepProgram.uniform.bind(this.stepProgram);
     gl.uniform2f(u('uTexel'), 1 / this.size, 1 / this.size);
     gl.uniform1f(u('uDt'), dt);
-    gl.uniform1f(u('uDiffOverDx2'), this.preset.diffusion / (this.dx * this.dx));
+    const dx2 = this.dx * this.dx;
+    const tensor = diffusionTensor(this.preset.diffusion, this.fibres);
+    gl.uniform1f(u('uDiffOverDx2'), this.preset.diffusion / dx2);
+    gl.uniform1i(u('uAnisotropic'), this.fibres.ratio !== 1 ? 1 : 0);
+    gl.uniform3f(u('uTensorOverDx2'), tensor.dxx / dx2, tensor.dxy / dx2, tensor.dyy / dx2);
     gl.uniform1f(u('invTauVPlus'), invRate(p.tauVPlus));
     gl.uniform1f(u('invTauVMinusLow'), invRate(p.tauVMinusLow));
     gl.uniform1f(u('invTauVMinusHigh'), invRate(p.tauVMinusHigh));

@@ -140,7 +140,7 @@ export function bindHud(app: AppController, canvas: HTMLCanvasElement): Hud {
     }
     hudRate.textContent = app.running ? rateText : 'paused';
     hudRhythm.textContent = rhythmText;
-    hudStatus.textContent = app.status;
+    hudStatus.textContent = app.isPacing ? 'pacing' : app.status;
     hudStatus.dataset.status = app.status;
     hudRotors.textContent = app.activity > 0 ? String(app.rotors.length) : '—';
     drawTips(tips, tipsCtx, app.rotors, tipColor);

@@ -1,0 +1,79 @@
+preset,label,shock_at_ms,strength,terminated,activity_after,rotors_after
+set1,stable rotor,3000,0.01,0,0.668,1
+set1,stable rotor,3000,0.02,0,0.636,1
+set1,stable rotor,3000,0.024,0,0.611,10
+set1,stable rotor,3000,0.026,0,0.587,5
+set1,stable rotor,3000,0.028,0,0.641,2
+set1,stable rotor,3000,0.03,0,0.624,2
+set1,stable rotor,3000,0.034,0,0.615,9
+set1,stable rotor,3000,0.04,1,0.000,0
+set1,stable rotor,3000,0.06,1,0.000,0
+set1,stable rotor,3000,0.1,1,0.000,0
+set1,stable rotor,3000,0.2,1,0.000,0
+set1,stable rotor,3000,0.4,1,0.000,0
+set1,stable rotor,3000,0.6,1,0.000,0
+set1,stable rotor,3130,0.01,0,0.635,1
+set1,stable rotor,3130,0.02,0,0.634,7
+set1,stable rotor,3130,0.024,0,0.645,2
+set1,stable rotor,3130,0.026,0,0.647,1
+set1,stable rotor,3130,0.028,0,0.628,1
+set1,stable rotor,3130,0.03,0,0.528,1
+set1,stable rotor,3130,0.034,0,0.571,3
+set1,stable rotor,3130,0.04,1,0.000,0
+set1,stable rotor,3130,0.06,1,0.000,0
+set1,stable rotor,3130,0.1,1,0.000,0
+set1,stable rotor,3130,0.2,1,0.000,0
+set1,stable rotor,3130,0.4,1,0.000,0
+set1,stable rotor,3130,0.6,1,0.000,0
+set1,stable rotor,3260,0.01,0,0.695,1
+set1,stable rotor,3260,0.02,0,0.667,1
+set1,stable rotor,3260,0.024,0,0.633,5
+set1,stable rotor,3260,0.026,0,0.663,6
+set1,stable rotor,3260,0.028,0,0.605,3
+set1,stable rotor,3260,0.03,0,0.691,2
+set1,stable rotor,3260,0.034,1,0.000,0
+set1,stable rotor,3260,0.04,1,0.000,0
+set1,stable rotor,3260,0.06,1,0.000,0
+set1,stable rotor,3260,0.1,1,0.000,0
+set1,stable rotor,3260,0.2,1,0.000,0
+set1,stable rotor,3260,0.4,1,0.000,0
+set1,stable rotor,3260,0.6,1,0.000,0
+set3,fibrillation,2500,0.01,0,0.584,6
+set3,fibrillation,2500,0.02,0,0.440,6
+set3,fibrillation,2500,0.024,0,0.525,10
+set3,fibrillation,2500,0.026,0,0.329,5
+set3,fibrillation,2500,0.028,0,0.481,5
+set3,fibrillation,2500,0.03,0,0.584,5
+set3,fibrillation,2500,0.034,0,0.427,1
+set3,fibrillation,2500,0.04,1,0.000,0
+set3,fibrillation,2500,0.06,1,0.000,0
+set3,fibrillation,2500,0.1,1,0.000,0
+set3,fibrillation,2500,0.2,1,0.000,0
+set3,fibrillation,2500,0.4,1,0.000,0
+set3,fibrillation,2500,0.6,1,0.000,0
+set3,fibrillation,2700,0.01,0,0.024,0
+set3,fibrillation,2700,0.02,0,0.540,11
+set3,fibrillation,2700,0.024,0,0.588,0
+set3,fibrillation,2700,0.026,0,0.719,3
+set3,fibrillation,2700,0.028,0,0.408,4
+set3,fibrillation,2700,0.03,0,0.618,1
+set3,fibrillation,2700,0.034,0,0.534,4
+set3,fibrillation,2700,0.04,1,0.000,0
+set3,fibrillation,2700,0.06,1,0.000,0
+set3,fibrillation,2700,0.1,1,0.000,0
+set3,fibrillation,2700,0.2,1,0.000,0
+set3,fibrillation,2700,0.4,1,0.000,0
+set3,fibrillation,2700,0.6,1,0.000,0
+set3,fibrillation,2900,0.01,0,0.541,4
+set3,fibrillation,2900,0.02,0,0.752,6
+set3,fibrillation,2900,0.024,0,0.567,9
+set3,fibrillation,2900,0.026,0,0.512,28
+set3,fibrillation,2900,0.028,0,0.643,6
+set3,fibrillation,2900,0.03,0,0.596,19
+set3,fibrillation,2900,0.034,0,0.460,8
+set3,fibrillation,2900,0.04,1,0.000,0
+set3,fibrillation,2900,0.06,1,0.000,0
+set3,fibrillation,2900,0.1,1,0.000,0
+set3,fibrillation,2900,0.2,1,0.000,0
+set3,fibrillation,2900,0.4,1,0.000,0
+set3,fibrillation,2900,0.6,1,0.000,0

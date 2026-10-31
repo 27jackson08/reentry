@@ -36,6 +36,7 @@
     <header class="masthead">
       <h1>Reentry</h1>
       <p class="tagline">Cardiac arrhythmia on a grid · Fenton-Karma tissue on the GPU</p>
+      <button id="tour-open" type="button" class="link-button">Guided tour</button>
     </header>
 
     <main class="stage">
@@ -44,6 +45,14 @@
         <canvas id="tips" aria-hidden="true"></canvas>
         <div id="shock-flash" aria-hidden="true"></div>
         <p id="narration" class="overlay narration" aria-live="polite"></p>
+        <aside id="tour" class="tour" hidden aria-live="polite">
+          <h2 id="tour-title"></h2>
+          <p id="tour-text"></p>
+          <div class="buttons">
+            <button id="tour-next" type="button" class="primary">Next</button>
+            <button id="tour-close" type="button">Close</button>
+          </div>
+        </aside>
         <div class="overlay scale" aria-hidden="true">
           <span id="scale-bar"></span>
           <span id="scale-label"></span>
@@ -111,6 +120,23 @@
         <p class="note">
           Sweep it. Weak shocks fail or re-induce; strong ones terminate. Find the threshold.
         </p>
+        <div class="buttons">
+          <button
+            id="pace"
+            type="button"
+            title="Antitachycardia pacing: ten beats from the top-left corner (P)"
+          >
+            Pace
+          </button>
+        </div>
+        <label class="slider">
+          <span>Pacing cycle <output id="pace-value"></output></span>
+          <input id="pace-cycle" type="range" min="120" max="500" step="10" value="300" />
+        </label>
+        <p class="note">
+          Set it just under the ECG cycle. Pacing captures a stable rotor; it rarely captures
+          fibrillation.
+        </p>
       </section>
 
       <section class="group">
@@ -132,6 +158,21 @@
       </section>
 
       <section class="group">
+        <h2>Fibres</h2>
+        <label class="slider">
+          <span>Conductivity ratio <output id="fibre-ratio-value"></output></span>
+          <input id="fibre-ratio" type="range" min="1" max="9" step="1" value="1" />
+        </label>
+        <label class="slider">
+          <span>Fibre angle <output id="fibre-angle-value"></output></span>
+          <input id="fibre-angle" type="range" min="0" max="175" step="5" value="0" />
+        </label>
+        <p class="note">
+          Real muscle conducts two to three times faster along fibres. Wavefronts become ellipses.
+        </p>
+      </section>
+
+      <section class="group">
         <h2>Brush</h2>
         <div class="buttons" role="group" aria-label="Pointer tool">
           <button type="button" data-tool="stimulate" aria-pressed="true">Stimulate</button>
@@ -147,7 +188,13 @@
             Scar patch
           </button>
           <button id="scar-clear" type="button">Clear scar</button>
+          <label class="file-button">
+            <input id="scar-image" type="file" accept="image/*" />
+            Scar from image
+          </label>
         </div>
+        <p class="note">Dark pixels become scar: drop in a segmentation mask or a drawing.</p>
+        <p id="scar-image-status" class="note" aria-live="polite"></p>
       </section>
 
       <section class="group">
@@ -170,13 +217,15 @@
         <h2>Share</h2>
         <div class="buttons">
           <button id="share" type="button">Copy link to this scenario</button>
+          <button id="record" type="button">Record clip</button>
+          <a id="record-link" class="note" hidden></a>
         </div>
         <p id="share-status" class="note" aria-live="polite"></p>
       </section>
 
       <footer class="keys">
-        <kbd>I</kbd> induce · <kbd>W</kbd> plane wave · <kbd>S</kbd> shock · <kbd>R</kbd> reset ·
-        <kbd>space</kbd> pause · click the tissue to stimulate
+        <kbd>I</kbd> induce · <kbd>W</kbd> plane wave · <kbd>S</kbd> shock · <kbd>P</kbd> pace ·
+        <kbd>R</kbd> reset · <kbd>space</kbd> pause · click the tissue to stimulate
         <a href="https://github.com/27jackson08/reentry">Source and physics notes</a>
       </footer>
     </aside>
