@@ -1,0 +1,26 @@
+/*
+ * Dark surface is deliberate: the voltage colormap maps resting tissue to near
+ * black so that only excitation carries light. The page recedes behind it.
+ */
+:root {
+  --color-surface: oklch(14% 0.01 280);
+  --color-surface-raised: oklch(19% 0.012 280);
+  --color-text: oklch(92% 0.01 90);
+  --color-text-muted: oklch(68% 0.015 280);
+  --color-accent: oklch(78% 0.16 60);
+  --color-danger: oklch(68% 0.2 25);
+  --color-trace: oklch(85% 0.17 150);
+
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --text-base: clamp(0.95rem, 0.9rem + 0.3vw, 1.05rem);
+  --text-small: 0.8rem;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+
+  --duration-fast: 150ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}

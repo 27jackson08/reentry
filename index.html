@@ -2,12 +2,23 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>reentry</title>
+    <meta name="color-scheme" content="dark" />
+    <meta
+      name="description"
+      content="Cardiac arrhythmia on a grid: a Fenton-Karma model of heart tissue in WebGL2. Induce a spiral wave, watch it break into fibrillation, add scar, and try to defibrillate."
+    />
+    <title>Reentry</title>
+    <link rel="icon" href="./favicon.svg" />
   </head>
   <body>
-    <div id="app"></div>
+    <main>
+      <canvas id="tissue" aria-label="Simulated cardiac tissue; click to stimulate"></canvas>
+      <section id="unsupported" hidden aria-live="polite">
+        <h1>Reentry needs WebGL2</h1>
+        <p></p>
+      </section>
+    </main>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

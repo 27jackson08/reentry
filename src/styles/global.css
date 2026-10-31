@@ -1,0 +1,36 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  display: grid;
+  place-items: center;
+  padding: var(--space-3);
+}
+
+#tissue {
+  width: min(100vw - 2 * var(--space-3), 100vh - 2 * var(--space-3));
+  aspect-ratio: 1;
+  display: block;
+  image-rendering: auto;
+  touch-action: none;
+}
+
+#unsupported {
+  max-width: 36rem;
+  padding: var(--space-4);
+  background: var(--color-surface-raised);
+  border-left: 3px solid var(--color-danger);
+}
