@@ -3,7 +3,11 @@ import type { FkParams } from './fentonKarma';
 export interface Preset {
   readonly id: string;
   readonly name: string;
-  /** What the viewer should expect to see after S1-S2 induction. Observed, not asserted. */
+  /**
+   * What this implementation shows after S1-S2 induction on the default 20 cm
+   * sheet at 0.4 mm, observed over 6 s. The 2002 paper's mechanism labels are
+   * in docs/PHYSICS.md; several of its breakups need longer runs or 3D.
+   */
   readonly description: string;
   readonly citation: string;
   readonly params: FkParams;
@@ -49,7 +53,7 @@ export const PRESETS: readonly Preset[] = [
   preset(
     'set3',
     'Set 3 · Beeler-Reuter (BR)',
-    'Stable spiral: the original 1998 fit. A single rotor that holds its period. Baseline.',
+    'Breaks up. The original Beeler-Reuter fit has steep restitution: the first rotor fragments into fibrillation within seconds, and in a bounded sheet it can extinguish itself.',
     `${FENTON2002}; identical to BR in ${FK1998}`,
     {
       tauVPlus: 3.33,
@@ -70,7 +74,7 @@ export const PRESETS: readonly Preset[] = [
   preset(
     'set1',
     'Set 1 · Steep APD restitution',
-    'Breakup far from the core: alternans along the arm tears the wave into fibrillation.',
+    'Stable rotor. The modified BR fit from 1998: one spiral that keeps its period. The clean baseline.',
     FENTON2002,
     {
       tauVPlus: 3.33,
@@ -91,7 +95,7 @@ export const PRESETS: readonly Preset[] = [
   preset(
     'set2',
     'Set 2 · No slow inward current',
-    'Short action potentials, fast meandering rotor. Slow inward current switched off.',
+    'Stable rotor without a slow inward current: triangular action potentials and a broad repolarization gradient.',
     FENTON2002,
     {
       tauVPlus: 10,
@@ -112,7 +116,7 @@ export const PRESETS: readonly Preset[] = [
   preset(
     'set4',
     'Set 4 · Biphasic restitution',
-    'Rotor with a large meander; the tip traces a flower pattern around the core.',
+    'Breaks up. Biphasic restitution: the rotor sheds wavelets until the sheet is fibrillating.',
     FENTON2002,
     {
       tauVPlus: 3.33,
@@ -133,7 +137,7 @@ export const PRESETS: readonly Preset[] = [
   preset(
     'set5',
     'Set 5 · Bistability',
-    'Low excitability: tip can detach and reattach; wave fronts fail intermittently.',
+    'Breaks up into fine wavelets. Low excitability lets fronts fail and fragment.',
     FENTON2002,
     {
       tauVPlus: 3.33,
@@ -154,7 +158,7 @@ export const PRESETS: readonly Preset[] = [
   preset(
     'set6',
     'Set 6 · Tip bistability',
-    'A rotor whose tip alternates between attached and detached rotation.',
+    'Multiple rotors. The first spiral spawns daughters; several coexist and compete.',
     FENTON2002,
     {
       tauVPlus: 3.33,
@@ -175,7 +179,7 @@ export const PRESETS: readonly Preset[] = [
   preset(
     'set7',
     'Set 7 · Hypermeander',
-    'No slow inward current and a wandering tip that never settles into a circle.',
+    'Stable rotor without a slow inward current: a large, slowly turning spiral.',
     FENTON2002,
     {
       tauVPlus: 10,
@@ -196,7 +200,7 @@ export const PRESETS: readonly Preset[] = [
   preset(
     'set8',
     'Set 8 · Slow excitability recovery',
-    'Breakup near the core: the front catches its own refractory tail and fragments.',
+    'Stable rotor with a tight core. Slow recovery of excitability sets a long period.',
     FENTON2002,
     {
       tauVPlus: 13.03,
@@ -217,7 +221,7 @@ export const PRESETS: readonly Preset[] = [
   preset(
     'set9',
     'Set 9 · Supernormal excitability',
-    'Waves speed up just after repolarization; rotors drift and collide.',
+    'Breaks up. Supernormal conduction speeds fronts into their own tails; wavelets everywhere.',
     FENTON2002,
     {
       tauVPlus: 3.33,
@@ -238,7 +242,7 @@ export const PRESETS: readonly Preset[] = [
   preset(
     'set10',
     'Set 10 · Guinea pig (GP), Doppler breakup',
-    'A meandering rotor whose Doppler-shifted arms break up into fibrillation.',
+    'Stable rotor. The guinea-pig fit from 1998, fast conduction and a smooth spiral.',
     `${FENTON2002}; GP set in ${FK1998}`,
     {
       tauVPlus: 10,
@@ -260,7 +264,7 @@ export const PRESETS: readonly Preset[] = [
   preset(
     'mlr1',
     'MLR-I · Modified Luo-Rudy',
-    'Long action potential, stable rotor with a large core. The classic 1998 MLR-I fit.',
+    'Stable rotor with a long action potential and a large core. The classic 1998 MLR-I fit.',
     FK1998,
     {
       tauVPlus: 10,

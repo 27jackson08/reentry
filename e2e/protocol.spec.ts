@@ -1,0 +1,79 @@
+import { expect, test } from '@playwright/test';
+import { openSim } from './helpers';
+
+// A 256 grid at 0.08 cm spacing is a 20 cm sheet (two wavelengths) that
+// SwiftShader can still step in reasonable time. Same code path as production.
+const SHEET = { n: '256', dx: '0.08' };
+test.describe.configure({ timeout: 240_000 });
+
+test('S1-S2 induction produces sustained reentry', async ({ page }) => {
+  await openSim(page, SHEET);
+  const result = await page.evaluate(() => {
+    const h = window.__reentry;
+    h.setStepsPerFrame(20);
+    h.induce();
+    const samples: number[] = [];
+    // 3 s of simulated time, sampling activity every 250 ms after induction completes.
+    while (h.timeMs() < 3000) {
+      h.tick(1);
+      if (Math.round(h.timeMs()) % 250 === 0) samples.push(h.activity());
+    }
+    return { samples, status: h.status() };
+  });
+  expect(result.status).toBe('active');
+  // Every sample in the last two seconds shows activity: a plane wave alone would have died.
+  const late = result.samples.slice(-8);
+  expect(late.length).toBeGreaterThan(4);
+  for (const a of late) expect(a).toBeGreaterThan(0.05);
+});
+
+test('a strong shock terminates reentry; a weak one does not', async ({ page }) => {
+  await openSim(page, SHEET);
+  const run = (current: number) =>
+    page.evaluate((current) => {
+      const h = window.__reentry;
+      h.reset();
+      h.setStepsPerFrame(20);
+      h.induce();
+      while (h.timeMs() < 1500) h.tick(1);
+      const before = h.activity();
+      h.shock(current, 5);
+      while (h.timeMs() < 2500) h.tick(1);
+      return { before, after: h.activity() };
+    }, current);
+  const strong = await run(1.0);
+  expect(strong.before).toBeGreaterThan(0.05);
+  expect(strong.after).toBe(0);
+  const weak = await run(0.02);
+  expect(weak.before).toBeGreaterThan(0.05);
+  expect(weak.after).toBeGreaterThan(0.05);
+});
+
+test('a scar wall blocks conduction and the mask round-trips through the URL', async ({ page }) => {
+  await openSim(page, SHEET);
+  const blocked = await page.evaluate(() => {
+    const h = window.__reentry;
+    const n = h.size;
+    const mask = new Array(n * n).fill(1);
+    for (let j = 0; j < n; j++)
+      for (let i = Math.floor(n * 0.5); i < Math.floor(n * 0.5) + 3; i++) mask[j * n + i] = 0;
+    h.setMask(mask);
+    h.stimulate({ kind: 'rect', x0: 0, y0: 0, x1: 0.05, y1: 1 }, 0.5, 2);
+    h.step(4000);
+    const u = h.readU();
+    let rightMax = 0;
+    for (let j = 0; j < n; j++)
+      for (let i = Math.floor(n * 0.6); i < n; i++) rightMax = Math.max(rightMax, u[j * n + i]!);
+    return rightMax;
+  });
+  expect(blocked).toBeLessThan(0.01);
+
+  await page.goto('/?test=1&n=256&dx=0.08&scar=gAAgAAI');
+  await page.waitForFunction(() => typeof window.__reentry !== 'undefined');
+  const cells = await page.evaluate(() => {
+    const h = window.__reentry;
+    h.step(1);
+    return h.readU().length;
+  });
+  expect(cells).toBe(256 * 256);
+});

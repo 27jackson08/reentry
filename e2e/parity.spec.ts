@@ -18,7 +18,7 @@ function compare(gpu: number[], cpu: Float32Array) {
 }
 
 test('GPU solver matches the CPU reference for a propagating plane wave', async ({ page }) => {
-  await openSim(page, { n: String(N), preset: preset.id });
+  await openSim(page, { n: String(N), dx: String(preset.dx), preset: preset.id });
   const steps = 400; // 40 ms
 
   const gpuU = await page.evaluate(
@@ -50,7 +50,7 @@ test('GPU solver matches the CPU reference for a propagating plane wave', async 
 });
 
 test('GPU solver matches the CPU reference with a scar disc in the path', async ({ page }) => {
-  await openSim(page, { n: String(N), preset: preset.id });
+  await openSim(page, { n: String(N), dx: String(preset.dx), preset: preset.id });
   const steps = 500;
   const disc = { ci: 32, cj: 32, r: 8 };
 

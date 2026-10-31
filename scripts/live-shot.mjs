@@ -1,0 +1,12 @@
+import { chromium } from '@playwright/test';
+const browser = await chromium.launch({ headless: false, args: ['--ignore-gpu-blocklist'] });
+const page = await browser.newPage({ viewport: { width: 1280, height: 860 } });
+page.on('pageerror', (e) => console.error('PAGEERROR', e.message));
+await page.goto('http://localhost:4173/?preset=set8');
+await page.waitForTimeout(500);
+await page.click('#induce');
+await page.waitForTimeout(6000);
+await page.screenshot({ path: process.argv[2] });
+const rate = await page.textContent('#hud-rate');
+console.log('rate', rate);
+await browser.close();

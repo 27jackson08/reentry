@@ -10,6 +10,7 @@
   --color-accent: oklch(78% 0.16 60);
   --color-danger: oklch(68% 0.2 25);
   --color-trace: oklch(85% 0.17 150);
+  --color-grid: oklch(28% 0.01 280);
 
   --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;

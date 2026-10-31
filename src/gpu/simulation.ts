@@ -69,6 +69,8 @@ export class Simulation {
   private readonly probeBuffer: Float32Array;
 
   private preset: Preset;
+  /** Grid spacing in cm; overrides the preset's dx when set. */
+  private dxOverride: number | null = null;
   private stimulus: Stimulus | null = null;
   private shock: Shock | null = null;
   private _timeMs = 0;
@@ -110,6 +112,19 @@ export class Simulation {
 
   setPreset(preset: Preset): void {
     this.preset = preset;
+  }
+
+  get dx(): number {
+    return this.dxOverride ?? this.preset.dx;
+  }
+
+  /** Physical side length of the sheet in cm. */
+  get sideCm(): number {
+    return this.dx * this.size;
+  }
+
+  setDx(dx: number | null): void {
+    this.dxOverride = dx;
   }
 
   /** Return every cell to rest, keeping the mask. */
@@ -177,7 +192,7 @@ export class Simulation {
     const u = this.stepProgram.uniform.bind(this.stepProgram);
     gl.uniform2f(u('uTexel'), 1 / this.size, 1 / this.size);
     gl.uniform1f(u('uDt'), dt);
-    gl.uniform1f(u('uDiffOverDx2'), this.preset.diffusion / (this.preset.dx * this.preset.dx));
+    gl.uniform1f(u('uDiffOverDx2'), this.preset.diffusion / (this.dx * this.dx));
     gl.uniform1f(u('invTauVPlus'), invRate(p.tauVPlus));
     gl.uniform1f(u('invTauVMinusLow'), invRate(p.tauVMinusLow));
     gl.uniform1f(u('invTauVMinusHigh'), invRate(p.tauVMinusHigh));

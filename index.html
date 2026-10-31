@@ -10,15 +10,125 @@
     />
     <title>Reentry</title>
     <link rel="icon" href="./favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;600&display=swap"
+    />
   </head>
   <body>
-    <main>
+    <header class="masthead">
+      <h1>Reentry</h1>
+      <p class="tagline">Cardiac arrhythmia on a grid</p>
+    </header>
+    <main class="stage">
       <canvas id="tissue" aria-label="Simulated cardiac tissue; click to stimulate"></canvas>
       <section id="unsupported" hidden aria-live="polite">
-        <h1>Reentry needs WebGL2</h1>
+        <h2>Reentry needs WebGL2</h2>
         <p></p>
       </section>
+      <figure class="scope">
+        <canvas id="ecg" aria-label="Pseudo-ECG trace"></canvas>
+        <figcaption>Pseudo-ECG · electrode 2 cm above the centre · 4 s window</figcaption>
+      </figure>
     </main>
+    <aside class="rail" aria-label="Simulation controls">
+      <section class="group">
+        <h2>Protocol</h2>
+        <div class="buttons">
+          <button id="induce" type="button" class="primary" title="S1-S2 cross-field pacing (I)">
+            Induce spiral
+          </button>
+          <button id="plane" type="button" title="Single plane wave (W)">Plane wave</button>
+          <button id="shock" type="button" class="danger" title="Defibrillation shock (S)">
+            Shock
+          </button>
+          <button id="reset" type="button" title="Return tissue to rest (R)">Reset</button>
+          <button id="pause" type="button" title="Pause or run (space)" aria-pressed="false">
+            Pause
+          </button>
+        </div>
+        <label class="slider">
+          <span>Shock strength <output id="shock-value"></output></span>
+          <input id="shock-strength" type="range" min="0" max="1" step="0.01" value="0.3" />
+        </label>
+      </section>
+      <section class="group">
+        <h2>Tissue</h2>
+        <label class="field">
+          <span>Parameter set</span>
+          <select id="preset"></select>
+        </label>
+        <p id="preset-note" class="note"></p>
+        <label class="field">
+          <span>Sheet</span>
+          <select id="sheet">
+            <option value="512@0.04">20 cm · 0.4 mm grid</option>
+            <option value="512@0.025">13 cm · 0.25 mm grid (reference)</option>
+            <option value="1024@0.025">26 cm · 0.25 mm grid (heavy)</option>
+            <option value="256@0.04">10 cm · 0.4 mm grid (mobile)</option>
+          </select>
+        </label>
+      </section>
+      <section class="group">
+        <h2>Brush</h2>
+        <div class="buttons" role="group" aria-label="Pointer tool">
+          <button type="button" data-tool="stimulate" aria-pressed="true">Stimulate</button>
+          <button type="button" data-tool="scar" aria-pressed="false">Scar</button>
+          <button type="button" data-tool="erase" aria-pressed="false">Erase</button>
+        </div>
+        <label class="slider">
+          <span>Brush radius <output id="brush-value"></output></span>
+          <input id="brush" type="range" min="0.01" max="0.15" step="0.005" value="0.04" />
+        </label>
+        <div class="buttons">
+          <button id="scar-patch" type="button" title="Place a round scar near the centre">
+            Scar patch
+          </button>
+          <button id="scar-clear" type="button">Clear scar</button>
+        </div>
+      </section>
+      <section class="group">
+        <h2>View</h2>
+        <label class="field">
+          <span>Colour by</span>
+          <select id="view">
+            <option value="voltage">Voltage</option>
+            <option value="phase">Phase</option>
+            <option value="gates">Gates</option>
+          </select>
+        </label>
+        <label class="slider">
+          <span>Steps per frame <output id="speed-value"></output></span>
+          <input id="speed" type="range" min="1" max="40" step="1" value="10" />
+        </label>
+      </section>
+      <section class="group">
+        <h2>Share</h2>
+        <div class="buttons">
+          <button id="share" type="button">Copy link to this scenario</button>
+        </div>
+        <p id="share-status" class="note" aria-live="polite"></p>
+      </section>
+      <section class="group hud" aria-live="off">
+        <h2>Readout</h2>
+        <dl>
+          <div>
+            <dt>Simulated time</dt>
+            <dd id="hud-time">0.00 s</dd>
+          </div>
+          <div>
+            <dt>Rate</dt>
+            <dd id="hud-rate">—</dd>
+          </div>
+          <div>
+            <dt>Tissue</dt>
+            <dd id="hud-status">quiescent</dd>
+          </div>
+        </dl>
+      </section>
+    </aside>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

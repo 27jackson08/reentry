@@ -13,4 +13,5 @@ export default tseslint.config(
       '@typescript-eslint/consistent-type-imports': 'error',
     },
   },
+  { files: ['scripts/**'], rules: { 'no-console': 'off' } },
 );
