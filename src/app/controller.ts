@@ -22,7 +22,8 @@ export type Tool = 'stimulate' | 'scar' | 'erase';
 
 const ACTIVE_THRESHOLD = 0.5;
 const SHOCK_DURATION_MS = 5;
-const DEFAULT_STEPS_PER_FRAME = 10;
+/** 100 steps = 10 ms per frame: 0.6× real time at 60 fps on a mid-range GPU. Auto-throttled in main.ts. */
+const DEFAULT_STEPS_PER_FRAME = 100;
 const DEFAULT_BRUSH = 0.04;
 const ELECTRODE: Electrode = { x: 0.5, y: 0.5, heightCm: 2 };
 
@@ -33,6 +34,8 @@ export class AppController {
   view: ViewMode = 'voltage';
   shockCurrent = 0.3;
   tool: Tool = 'stimulate';
+  /** Tests step deterministically and read the probe synchronously. */
+  syncProbe = false;
   brushRadius = DEFAULT_BRUSH;
   private protocol: S1S2State | null = null;
   private probe: Float32Array | null = null;
@@ -136,7 +139,9 @@ export class AppController {
     if (!this.running || this.stepsPerFrame === 0) return;
     this.sim.step(this.stepsPerFrame);
     this.lastTickMs = this.stepsPerFrame * this.sim.dt;
-    this.probe = this.sim.probe();
+    const probe = this.syncProbe ? this.sim.probe() : this.sim.probeAsync();
+    if (!probe) return;
+    this.probe = probe;
     this.activity = activeFraction(this.probe, PROBE_SIZE, ACTIVE_THRESHOLD);
     this.lastEcg = {
       t: this.sim.timeMs,

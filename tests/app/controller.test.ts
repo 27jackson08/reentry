@@ -62,6 +62,9 @@ class StubSim {
     }
     return buf;
   }
+  probeAsync() {
+    return this.probe();
+  }
   render() {}
   readState() {
     return new Float32Array(0);

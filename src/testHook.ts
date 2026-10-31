@@ -28,6 +28,7 @@ export interface ReentryTestHook {
 
 export function installTestHook(app: AppController): void {
   const sim = app.sim;
+  app.syncProbe = true;
   const hook: ReentryTestHook = {
     size: sim.size,
     step: (n) => sim.step(n),

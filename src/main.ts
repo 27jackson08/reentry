@@ -65,7 +65,14 @@ try {
 
   const sheetSelect = document.querySelector<HTMLSelectElement>('#sheet');
   if (sheetSelect) {
-    sheetSelect.value = `${size}@${sim.dx}`;
+    const value = `${size}@${sim.dx}`;
+    if (!Array.from(sheetSelect.options).some((o) => o.value === value)) {
+      const custom = document.createElement('option');
+      custom.value = value;
+      custom.textContent = `${(size * sim.dx).toFixed(1)} cm · ${(sim.dx * 10).toFixed(2)} mm grid (from URL)`;
+      sheetSelect.append(custom);
+    }
+    sheetSelect.value = value;
     sheetSelect.addEventListener('change', () => {
       const [n, dx] = sheetSelect.value.split('@');
       const next = new URLSearchParams(location.search);
@@ -76,7 +83,25 @@ try {
     });
   }
 
-  const frame = () => {
+  // Auto-throttle: if frames keep taking longer than ~25 ms, halve the work per
+  // frame (down to 10 steps) so slower GPUs stay smooth. Users can raise it back.
+  const SLOW_FRAME_MS = 25;
+  const SLOW_FRAMES_BEFORE_THROTTLE = 12;
+  const MIN_STEPS = 10;
+  let slowFrames = 0;
+  let lastFrameAt = performance.now();
+
+  const frame = (now: number) => {
+    const elapsed = now - lastFrameAt;
+    lastFrameAt = now;
+    if (app.running && elapsed > SLOW_FRAME_MS && app.stepsPerFrame > MIN_STEPS) {
+      if (++slowFrames >= SLOW_FRAMES_BEFORE_THROTTLE) {
+        controls.setSteps(Math.max(MIN_STEPS, Math.floor(app.stepsPerFrame / 2)));
+        slowFrames = 0;
+      }
+    } else {
+      slowFrames = 0;
+    }
     resize(canvas);
     app.tick();
     app.render(canvas.width, canvas.height);

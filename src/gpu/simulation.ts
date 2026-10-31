@@ -67,8 +67,11 @@ export class Simulation {
   private readonly phaseLut: WebGLTexture;
   private readonly vao: WebGLVertexArrayObject;
   private readonly probeBuffer: Float32Array;
+  private readonly probePbo: WebGLBuffer;
+  private probeFence: WebGLSync | null = null;
 
   private preset: Preset;
+  private mask: Uint8Array;
   /** Grid spacing in cm; overrides the preset's dx when set. */
   private dxOverride: number | null = null;
   private stimulus: Stimulus | null = null;
@@ -83,10 +86,17 @@ export class Simulation {
     const vao = gl.createVertexArray();
     if (!vao) throw new Error('createVertexArray returned null');
     this.vao = vao;
-    this.state = new PingPong(gl, size, size, restState(size));
-    this.maskTexture = createMaskTexture(gl, size, size, new Uint8Array(size * size).fill(1));
+    this.mask = new Uint8Array(size * size).fill(1);
+    this.state = new PingPong(gl, size, size, restState(size, this.mask));
+    this.maskTexture = createMaskTexture(gl, size, size, this.mask);
     this.probeTarget = createFloatTarget(gl, PROBE_SIZE, PROBE_SIZE);
     this.probeBuffer = new Float32Array(PROBE_SIZE * PROBE_SIZE * 4);
+    const pbo = gl.createBuffer();
+    if (!pbo) throw new Error('createBuffer returned null');
+    this.probePbo = pbo;
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pbo);
+    gl.bufferData(gl.PIXEL_PACK_BUFFER, this.probeBuffer.byteLength, gl.DYNAMIC_READ);
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
     this.stepProgram = createProgram(gl, quadVert, stepFrag);
     this.renderProgram = createProgram(gl, quadVert, renderFrag);
     this.probeProgram = createProgram(gl, quadVert, probeFrag);
@@ -129,8 +139,8 @@ export class Simulation {
 
   /** Return every cell to rest, keeping the mask. */
   reset(): void {
-    uploadFloatTarget(this.gl, this.state.read, restState(this.size));
-    uploadFloatTarget(this.gl, this.state.write, restState(this.size));
+    uploadFloatTarget(this.gl, this.state.read, restState(this.size, this.mask));
+    uploadFloatTarget(this.gl, this.state.write, restState(this.size, this.mask));
     this.stimulus = null;
     this.shock = null;
     this._timeMs = 0;
@@ -141,7 +151,8 @@ export class Simulation {
     if (mask.length !== this.size * this.size) {
       throw new Error(`mask has ${mask.length} cells, expected ${this.size * this.size}`);
     }
-    uploadMaskTexture(this.gl, this.maskTexture, this.size, this.size, mask);
+    this.mask = Uint8Array.from(mask);
+    uploadMaskTexture(this.gl, this.maskTexture, this.size, this.size, this.mask);
   }
 
   /** Inject `current` (du/dt units) inside `shape` for `durationMs` of simulated time. */
@@ -269,8 +280,53 @@ export class Simulation {
   /**
    * Downsample the state to PROBE_SIZE² and read it back.
    * Layout per texel: [mean u, max u, mean v, tissue count].
+   * Synchronous: stalls until the GPU finishes. Used by tests and by the
+   * asynchronous path's first sample.
    */
   probe(): Float32Array {
+    const { gl } = this;
+    this.drawProbe();
+    gl.readPixels(0, 0, PROBE_SIZE, PROBE_SIZE, gl.RGBA, gl.FLOAT, this.probeBuffer);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.activeTexture(gl.TEXTURE0);
+    return this.probeBuffer;
+  }
+
+  /**
+   * Non-blocking probe. Issues the downsample and a readback into a pixel
+   * buffer guarded by a fence; returns the previous completed readback (or
+   * null until one has landed). Latency is one frame, which the ECG and the
+   * S1-S2 timing tolerate; the stall of a synchronous read does not.
+   */
+  probeAsync(): Float32Array | null {
+    const { gl } = this;
+    let result: Float32Array | null = null;
+    if (this.probeFence) {
+      const status = gl.clientWaitSync(this.probeFence, 0, 0);
+      if (status === gl.ALREADY_SIGNALED || status === gl.CONDITION_SATISFIED) {
+        gl.deleteSync(this.probeFence);
+        this.probeFence = null;
+        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.probePbo);
+        gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, this.probeBuffer);
+        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+        result = this.probeBuffer;
+      } else {
+        // Previous readback still in flight: do not queue another.
+        return null;
+      }
+    }
+    this.drawProbe();
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.probePbo);
+    gl.readPixels(0, 0, PROBE_SIZE, PROBE_SIZE, gl.RGBA, gl.FLOAT, 0);
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+    this.probeFence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+    gl.flush();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.activeTexture(gl.TEXTURE0);
+    return result;
+  }
+
+  private drawProbe(): void {
     const { gl } = this;
     gl.useProgram(this.probeProgram.handle);
     gl.bindVertexArray(this.vao);
@@ -286,10 +342,6 @@ export class Simulation {
     gl.uniform1i(u('uBlock'), Math.max(1, Math.floor(this.size / PROBE_SIZE)));
     gl.uniform2f(u('uTexel'), 1 / this.size, 1 / this.size);
     drawFullscreen(gl);
-    gl.readPixels(0, 0, PROBE_SIZE, PROBE_SIZE, gl.RGBA, gl.FLOAT, this.probeBuffer);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.activeTexture(gl.TEXTURE0);
-    return this.probeBuffer;
   }
 
   /** Full-resolution readback of (u, v, w, 1) per cell. Slow; for tests and export. */
@@ -303,13 +355,14 @@ export class Simulation {
   }
 }
 
-function restState(size: number): Float32Array {
+/** Every cell at rest; alpha carries the mask so the step shader's neighbour fetch sees it. */
+function restState(size: number, mask: Uint8Array): Float32Array {
   const data = new Float32Array(size * size * 4);
   for (let i = 0; i < size * size; i++) {
     data[i * 4] = REST.u;
     data[i * 4 + 1] = REST.v;
     data[i * 4 + 2] = REST.w;
-    data[i * 4 + 3] = 1;
+    data[i * 4 + 3] = mask[i] ? 1 : 0;
   }
   return data;
 }

@@ -4,8 +4,8 @@
 precision highp float;
 precision highp sampler2D;
 
-uniform sampler2D uState; // r = u, g = v, b = w
-uniform sampler2D uMask;  // r = 1 tissue, 0 scar
+uniform sampler2D uState; // r = u, g = v, b = w, a = mask (1 tissue, 0 scar) as of last step
+uniform sampler2D uMask;  // r = 1 tissue, 0 scar; authoritative, propagated into alpha each step
 uniform vec2 uTexel;      // 1 / grid size
 uniform float uDt;        // ms
 uniform float uDiffOverDx2; // D / dx²
@@ -26,15 +26,15 @@ uniform float uShockCurrent;
 in vec2 vUv;
 out vec4 outState;
 
-const vec4 REST = vec4(0.0, 1.0, 1.0, 1.0);
+const vec4 SCAR = vec4(0.0, 1.0, 1.0, 0.0);
 
 float neighbour(vec2 offset, float centre) {
-  vec2 uv = vUv + offset * uTexel;
-  float m = texture(uMask, uv).r;
-  // CLAMP_TO_EDGE returns the centre texel outside the domain, so the
-  // difference is zero there: a no-flux boundary for free. Scar is masked out
-  // explicitly, which is the same no-flux condition at an internal wall.
-  return m < 0.5 ? 0.0 : texture(uState, uv).r - centre;
+  // One fetch per neighbour: the mask rides in alpha. CLAMP_TO_EDGE returns the
+  // centre texel outside the domain, so the difference is zero there: a no-flux
+  // boundary for free. Scar is masked out explicitly, which is the same no-flux
+  // condition at an internal wall.
+  vec4 n = texture(uState, vUv + offset * uTexel);
+  return n.a < 0.5 ? 0.0 : n.r - centre;
 }
 
 bool inStimulus() {
@@ -50,7 +50,7 @@ bool inStimulus() {
 
 void main() {
   if (texture(uMask, vUv).r < 0.5) {
-    outState = REST;
+    outState = SCAR;
     return;
   }
   vec3 s = texture(uState, vUv).rgb;

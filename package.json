@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "validate": "vitest run --config vitest.validation.config.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

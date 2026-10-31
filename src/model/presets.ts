@@ -53,7 +53,7 @@ export const PRESETS: readonly Preset[] = [
   preset(
     'set3',
     'Set 3 · Beeler-Reuter (BR)',
-    'Breaks up. The original Beeler-Reuter fit has steep restitution: the first rotor fragments into fibrillation within seconds, and in a bounded sheet it can extinguish itself.',
+    'Breaks up. The original Beeler-Reuter fit has steep restitution (APD90 98 → 268 ms across the table in docs/validation.md): the first rotor fragments into fibrillation within seconds, and in a bounded sheet it can extinguish itself.',
     `${FENTON2002}; identical to BR in ${FK1998}`,
     {
       tauVPlus: 3.33,
@@ -73,8 +73,8 @@ export const PRESETS: readonly Preset[] = [
   ),
   preset(
     'set1',
-    'Set 1 · Steep APD restitution',
-    'Stable rotor. The modified BR fit from 1998: one spiral that keeps its period. The clean baseline.',
+    'Set 1 · Modified BR (MBR)',
+    'Stable rotor. Flat restitution: one spiral that keeps its period. The clean baseline.',
     FENTON2002,
     {
       tauVPlus: 3.33,
@@ -115,8 +115,8 @@ export const PRESETS: readonly Preset[] = [
   ),
   preset(
     'set4',
-    'Set 4 · Biphasic restitution',
-    'Breaks up. Biphasic restitution: the rotor sheds wavelets until the sheet is fibrillating.',
+    'Set 4',
+    'Breaks up. The rotor sheds wavelets until the sheet is fibrillating.',
     FENTON2002,
     {
       tauVPlus: 3.33,
@@ -136,8 +136,8 @@ export const PRESETS: readonly Preset[] = [
   ),
   preset(
     'set5',
-    'Set 5 · Bistability',
-    'Breaks up into fine wavelets. Low excitability lets fronts fail and fragment.',
+    'Set 5',
+    'Breaks up into fine wavelets. Slow conduction and a long action potential.',
     FENTON2002,
     {
       tauVPlus: 3.33,
@@ -157,7 +157,7 @@ export const PRESETS: readonly Preset[] = [
   ),
   preset(
     'set6',
-    'Set 6 · Tip bistability',
+    'Set 6',
     'Multiple rotors. The first spiral spawns daughters; several coexist and compete.',
     FENTON2002,
     {
@@ -178,7 +178,7 @@ export const PRESETS: readonly Preset[] = [
   ),
   preset(
     'set7',
-    'Set 7 · Hypermeander',
+    'Set 7 · No slow inward current',
     'Stable rotor without a slow inward current: a large, slowly turning spiral.',
     FENTON2002,
     {
@@ -197,31 +197,25 @@ export const PRESETS: readonly Preset[] = [
       uV: 0.0,
     },
   ),
-  preset(
-    'set8',
-    'Set 8 · Slow excitability recovery',
-    'Stable rotor with a tight core. Slow recovery of excitability sets a long period.',
-    FENTON2002,
-    {
-      tauVPlus: 13.03,
-      tauVMinusLow: 19.6,
-      tauVMinusHigh: 1250,
-      tauWPlus: 800,
-      tauWMinus: 40,
-      tauD: 0.45,
-      tau0: 12.5,
-      tauR: 33.25,
-      tauSi: 29,
-      k: 10,
-      uCsi: 0.85,
-      uC: 0.13,
-      uV: 0.04,
-    },
-  ),
+  preset('set8', 'Set 8', 'Stable rotor with a tight core and a long period.', FENTON2002, {
+    tauVPlus: 13.03,
+    tauVMinusLow: 19.6,
+    tauVMinusHigh: 1250,
+    tauWPlus: 800,
+    tauWMinus: 40,
+    tauD: 0.45,
+    tau0: 12.5,
+    tauR: 33.25,
+    tauSi: 29,
+    k: 10,
+    uCsi: 0.85,
+    uC: 0.13,
+    uV: 0.04,
+  }),
   preset(
     'set9',
-    'Set 9 · Supernormal excitability',
-    'Breaks up. Supernormal conduction speeds fronts into their own tails; wavelets everywhere.',
+    'Set 9',
+    'Breaks up. Short action potentials; wavelets everywhere within two seconds.',
     FENTON2002,
     {
       tauVPlus: 3.33,
@@ -241,8 +235,8 @@ export const PRESETS: readonly Preset[] = [
   ),
   preset(
     'set10',
-    'Set 10 · Guinea pig (GP), Doppler breakup',
-    'Stable rotor. The guinea-pig fit from 1998, fast conduction and a smooth spiral.',
+    'Set 10 · Guinea pig (GP)',
+    'Stable rotor. The guinea-pig fit from 1998: fast conduction and a smooth spiral.',
     `${FENTON2002}; GP set in ${FK1998}`,
     {
       tauVPlus: 10,

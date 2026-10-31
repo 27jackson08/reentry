@@ -12,6 +12,8 @@ function byId<T extends HTMLElement>(id: string): T {
 
 export interface Controls {
   readonly update: () => void;
+  /** Set steps per frame from code (auto-throttle) and reflect it in the slider. */
+  readonly setSteps: (n: number) => void;
 }
 
 export function bindControls(app: AppController, shareUrl: () => string): Controls {
@@ -78,6 +80,10 @@ export function bindControls(app: AppController, shareUrl: () => string): Contro
   };
   speed.addEventListener('input', syncSpeed);
   syncSpeed();
+  const setSteps = (n: number) => {
+    speed.value = String(n);
+    syncSpeed();
+  };
 
   const toolButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('button[data-tool]'));
   const syncTool = () => {
@@ -139,7 +145,7 @@ export function bindControls(app: AppController, shareUrl: () => string): Contro
     const now = performance.now();
     if (now - lastRateUpdate > 500) {
       const simMsPerRealS = (msAccum / (now - lastRateUpdate)) * 1000;
-      rateText = `${Math.round(simMsPerRealS)} ms/s`;
+      rateText = `${(simMsPerRealS / 1000).toFixed(2)}× real time`;
       msAccum = 0;
       frames = 0;
       lastRateUpdate = now;
@@ -149,5 +155,5 @@ export function bindControls(app: AppController, shareUrl: () => string): Contro
     hudStatus.dataset.status = app.status;
   };
   void frames;
-  return { update };
+  return { update, setSteps };
 }
