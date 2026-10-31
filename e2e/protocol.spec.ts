@@ -18,9 +18,12 @@ test('S1-S2 induction produces sustained reentry', async ({ page }) => {
       h.tick(1);
       if (Math.round(h.timeMs()) % 250 === 0) samples.push(h.activity());
     }
-    return { samples, status: h.status() };
+    return { samples, status: h.status(), rotors: h.rotors().length };
   });
   expect(result.status).toBe('active');
+  // The phase-singularity detector sees the rotor tip (set 1 holds exactly one).
+  expect(result.rotors).toBeGreaterThanOrEqual(1);
+  expect(result.rotors).toBeLessThanOrEqual(3);
   // Every sample in the last two seconds shows activity: a plane wave alone would have died.
   const late = result.samples.slice(-8);
   expect(late.length).toBeGreaterThan(4);

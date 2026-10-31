@@ -84,6 +84,8 @@ About 7 % slow at the default. Action potential duration is unaffected (it is a 
 
 **ECG rhythm readout.** The dominant cycle length is the earliest strong peak of the autocorrelation of the last 2.5 s of pseudo-ECG (harmonics at 2T and 3T are as tall as the peak at T, so the earliest within 85 % of the tallest wins). Regularity is the autocorrelation at that lag; at or above 0.65 the label reads "regular". Measured on this implementation: set 1's rotor scores 0.85–0.9 at 395 ms; set 3's fibrillation scores 0.2–0.65 with a wandering cycle length.
 
+**Rotor tips.** Phase singularities are counted on the 64×64 probe grid using a time-delay embedding of voltage, θ = atan2(u(t − 40 ms) − 0.45, u(t) − 0.45), the construction used for optical-mapping data (Bray & Wikswo 2002). Around each 2×2 plaquette the wrapped phase differences sum to ±2π at a tip and 0 elsewhere. Singularities within 2.5 cells merge: opposite charges annihilate, equal charges collapse to one, because a rotor core on a 3 mm grid often registers as a tip plus a spurious pair. The delay and origin were chosen on recorded probes: stable rotors (sets 1 and 10) count exactly one in every snapshot; set 3's fibrillation counts 6 to 17. Rings on the sheet mark each tip; the tick shows the sense of rotation.
+
 **Pseudo-ECG.** φ(r_e) = −∫ ∇u · ∇(1/|r − r_e|) dA over tissue, with the electrode 2 cm above the sheet centre, evaluated on the 64×64 downsample each frame (Plonsey & Barr). It is unscaled; the scope auto-gains. Unit tests check zero for uniform tissue, sign reversal with electrode position, and linearity.
 
 ## 5. Observed behaviour

@@ -52,6 +52,12 @@ const VIEW_INDEX: Record<ViewMode, number> = { voltage: 0, phase: 1, gates: 2 };
 
 export const PROBE_SIZE = 64;
 
+export interface ProbeResult {
+  readonly data: Float32Array;
+  /** Simulated time the probe was taken at (earlier than now for the async path). */
+  readonly timeMs: number;
+}
+
 const invRate = (tau: number) => (Number.isFinite(tau) ? 1 / tau : 0);
 
 export class Simulation {
@@ -69,6 +75,8 @@ export class Simulation {
   private readonly probeBuffer: Float32Array;
   private readonly probePbo: WebGLBuffer;
   private probeFence: WebGLSync | null = null;
+  /** Simulated time at which the in-flight readback was issued. */
+  private probeIssuedAtMs = 0;
 
   private preset: Preset;
   private mask: Uint8Array;
@@ -298,9 +306,9 @@ export class Simulation {
    * null until one has landed). Latency is one frame, which the ECG and the
    * S1-S2 timing tolerate; the stall of a synchronous read does not.
    */
-  probeAsync(): Float32Array | null {
+  probeAsync(): ProbeResult | null {
     const { gl } = this;
-    let result: Float32Array | null = null;
+    let result: ProbeResult | null = null;
     if (this.probeFence) {
       const status = gl.clientWaitSync(this.probeFence, 0, 0);
       if (status === gl.ALREADY_SIGNALED || status === gl.CONDITION_SATISFIED) {
@@ -309,7 +317,7 @@ export class Simulation {
         gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.probePbo);
         gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, this.probeBuffer);
         gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
-        result = this.probeBuffer;
+        result = { data: this.probeBuffer, timeMs: this.probeIssuedAtMs };
       } else {
         // Previous readback still in flight: do not queue another.
         return null;
@@ -320,10 +328,46 @@ export class Simulation {
     gl.readPixels(0, 0, PROBE_SIZE, PROBE_SIZE, gl.RGBA, gl.FLOAT, 0);
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
     this.probeFence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+    this.probeIssuedAtMs = this._timeMs;
     gl.flush();
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.activeTexture(gl.TEXTURE0);
     return result;
+  }
+
+  /** Timing of the probe readback strategies, for performance work. */
+  benchmarkProbe(iterations = 20): Record<string, number> {
+    const { gl } = this;
+    const time = (fn: () => void) => {
+      const t0 = performance.now();
+      for (let i = 0; i < iterations; i++) fn();
+      return +((performance.now() - t0) / iterations).toFixed(3);
+    };
+    const out: Record<string, number> = {};
+    out.drawThenRead = time(() => {
+      this.drawProbe();
+      gl.readPixels(0, 0, PROBE_SIZE, PROBE_SIZE, gl.RGBA, gl.FLOAT, this.probeBuffer);
+    });
+    out.drawFinishRead = time(() => {
+      this.drawProbe();
+      gl.finish();
+      gl.readPixels(0, 0, PROBE_SIZE, PROBE_SIZE, gl.RGBA, gl.FLOAT, this.probeBuffer);
+    });
+    out.stepsThenProbe = time(() => {
+      this.step(100);
+      this.probe();
+    });
+    out.stepsFinishProbe = time(() => {
+      this.step(100);
+      gl.finish();
+      this.probe();
+    });
+    out.stepsThenProbeAsync = time(() => {
+      this.step(100);
+      this.probeAsync();
+    });
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    return out;
   }
 
   private drawProbe(): void {

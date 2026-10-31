@@ -84,6 +84,14 @@ body {
   cursor: cell;
 }
 
+#tips {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
 #shock-flash {
   position: absolute;
   inset: 0;
@@ -119,6 +127,25 @@ body {
   pointer-events: none;
 }
 
+.overlay.narration {
+  top: var(--space-2);
+  left: var(--space-2);
+  right: var(--space-2);
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity var(--duration-normal, 300ms) var(--ease-out),
+    transform var(--duration-normal, 300ms) var(--ease-out);
+}
+
+.overlay.narration.visible {
+  opacity: 1;
+  transform: none;
+}
+
 .overlay.scale {
   left: var(--space-2);
   bottom: var(--space-2);
@@ -150,7 +177,7 @@ body {
   width: 100%;
   max-width: 48rem;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: var(--space-2);
 }
 
@@ -371,7 +398,7 @@ kbd {
   }
 
   .instrument {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
 
   .keys {

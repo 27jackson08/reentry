@@ -13,6 +13,17 @@
       content="Cardiac arrhythmia on a grid: a Fenton-Karma model of heart tissue in WebGL2. Induce a spiral wave, watch it break into fibrillation, add scar, and try to defibrillate."
     />
     <title>Reentry</title>
+    <meta property="og:title" content="Reentry · cardiac arrhythmia on a grid" />
+    <meta
+      property="og:description"
+      content="A Fenton-Karma model of heart tissue in WebGL2. Induce a spiral wave, watch it break into fibrillation, add scar, and try to defibrillate."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://27jackson08.github.io/reentry/" />
+    <meta property="og:image" content="https://27jackson08.github.io/reentry/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" href="./favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -30,7 +41,9 @@
     <main class="stage">
       <div class="tissue-wrap">
         <canvas id="tissue" aria-label="Simulated cardiac tissue; click to stimulate"></canvas>
+        <canvas id="tips" aria-hidden="true"></canvas>
         <div id="shock-flash" aria-hidden="true"></div>
+        <p id="narration" class="overlay narration" aria-live="polite"></p>
         <div class="overlay scale" aria-hidden="true">
           <span id="scale-bar"></span>
           <span id="scale-label"></span>
@@ -58,6 +71,10 @@
         <div>
           <dt>ECG cycle</dt>
           <dd id="hud-rhythm">—</dd>
+        </div>
+        <div>
+          <dt>Rotors</dt>
+          <dd id="hud-rotors">—</dd>
         </div>
         <div>
           <dt>Tissue</dt>

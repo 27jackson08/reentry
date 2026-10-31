@@ -11,10 +11,20 @@
 A 20 cm square of simulated ventricular tissue, 512 cells on a side. Colour is membrane voltage: black is resting, pale is depolarized. Every frame the GPU advances the model by several time steps; a step is 0.1 ms of simulated time.
 
 1. **Induce spiral.** An S1 stimulus launches a plane wave from the left edge. When that wave's tail reaches the middle of the sheet, an S2 stimulus fires into the lower-left quadrant. Half of S2's front runs into tissue that is still refractory and dies; the other half propagates. The free end curls into a rotor. This cross-field S1-S2 protocol is how reentry is started in real experiments.
-2. **Watch.** The default set (modified Beeler-Reuter) holds a single stable rotor: a monomorphic tachycardia, and the ECG cycle readout says so (about 395 ms, regular). Switch to set 3, the original Beeler-Reuter fit, and the rotor breaks up into fibrillation; the readout turns irregular.
+2. **Watch.** The default set (modified Beeler-Reuter) holds a single stable rotor: a monomorphic tachycardia. The instrument strip says so: ECG cycle about 395 ms and regular, Rotors 1, with a ring drawn on the rotor tip. Switch to set 3, the original Beeler-Reuter fit, and the rotor breaks up into fibrillation; the ECG turns irregular and the rotor count climbs past ten.
 3. **Scar.** Switch the brush to Scar and paint, or press _Scar patch_. Scar does not conduct. A rotor that wanders will anchor to it and turn around it.
 4. **Shock.** A uniform current pulse across the whole sheet. Sweep the strength: weak shocks fail or re-induce, strong ones terminate. Find the threshold.
 5. **Share.** The link encodes preset, grid, view and your scar strokes.
+
+**Scenarios to open directly**
+
+|                                                    |                                                                |
+| -------------------------------------------------- | -------------------------------------------------------------- |
+| Stable rotor, regular tachycardia                  | https://27jackson08.github.io/reentry/                         |
+| Breakup into fibrillation (original Beeler-Reuter) | https://27jackson08.github.io/reentry/?preset=set3             |
+| Rotor anchored to a scar patch                     | https://27jackson08.github.io/reentry/?preset=set8&scar=nrjMO  |
+| Phase view of a fast guinea-pig rotor              | https://27jackson08.github.io/reentry/?preset=set10&view=phase |
+| Reference grid spacing of the papers (13 cm sheet) | https://27jackson08.github.io/reentry/?n=512&dx=0.025          |
 
 Keyboard: `I` induce, `W` plane wave, `S` shock, `R` reset, `space` pause. Click the tissue to stimulate a spot. A fresh link induces a spiral on its own after a moment (not under reduced-motion settings).
 
@@ -30,6 +40,7 @@ What is checked, automatically:
 - Rest is a fixed point; threshold behaviour; APD restitution is monotone; conduction velocity is physiological; scar blocks conduction; a closed no-flux boundary leaks nothing.
 - S1-S2 produces sustained reentry; a strong shock ends it; a weak one does not.
 - The ECG rhythm readout recovers the period of a regular signal and stays quiet on a flat one.
+- The rotor detector finds exactly one phase singularity in a synthetic spiral, two of opposite charge in a pair, none in uniform tissue, and merges the spurious clusters a coarse grid produces.
 
 What is simplified, deliberately: a flat isotropic sheet, no fibre direction, no anatomy, a monodomain shock, and a default grid spacing 60 % coarser than the papers' (costing about 7 % in conduction velocity, documented in the physics notes, with the reference spacing one click away).
 

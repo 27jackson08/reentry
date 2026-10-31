@@ -20,6 +20,14 @@ const REGULAR_THRESHOLD = 0.65;
 const RHYTHM_WINDOW_MS = 2500;
 const RHYTHM_SMOOTHING = 3;
 const FLASH_MS = 260;
+const NARRATION_LINGER_MS = 2500;
+const NARRATION: Record<string, string> = {
+  awaitUpstroke: 'S1 · plane wave launched from the left edge',
+  awaitWaveBack: 'S1 · waiting for the wave back to reach mid-sheet',
+  awaitRecovery: 'S1 · waiting for the wave back to reach mid-sheet',
+  done: 'S2 · fired into the wake: half blocks, half conducts, the free end curls',
+  failed: 'Induction failed: no wave reached the probe',
+};
 
 /** Median of the recent evaluations, so the label does not flicker frame to frame. */
 function describeRhythm(recent: ({ cycleMs: number; regularity: number } | null)[]): string {
@@ -30,6 +38,46 @@ function describeRhythm(recent: ({ cycleMs: number; regularity: number } | null)
   const cycles = [...valid].sort((a, b) => a.cycleMs - b.cycleMs);
   const cycle = cycles[Math.floor(cycles.length / 2)]!.cycleMs;
   return `${cycle} ms · ${mid.regularity >= REGULAR_THRESHOLD ? 'regular' : 'irregular'}`;
+}
+
+/** Rings at each phase singularity, on a transparent canvas over the tissue. */
+function drawTips(
+  canvas: HTMLCanvasElement,
+  ctx: CanvasRenderingContext2D | null,
+  rotors: readonly { x: number; y: number; charge: number }[],
+  color: string,
+): void {
+  if (!ctx) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = Math.round(canvas.clientWidth * dpr);
+  const h = Math.round(canvas.clientHeight * dpr);
+  if (w === 0 || h === 0) return;
+  if (canvas.width !== w || canvas.height !== h) {
+    canvas.width = w;
+    canvas.height = h;
+  }
+  ctx.clearRect(0, 0, w, h);
+  if (rotors.length === 0) return;
+  const radius = Math.max(4, w * 0.012);
+  ctx.lineWidth = 1.5 * dpr;
+  ctx.strokeStyle = color;
+  for (const r of rotors) {
+    const cx = r.x * w;
+    const cy = (1 - r.y) * h;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+    ctx.stroke();
+    // A short tick shows the sense of rotation.
+    ctx.beginPath();
+    ctx.arc(
+      cx,
+      cy,
+      radius * 1.8,
+      r.charge > 0 ? -Math.PI / 2 : Math.PI / 2,
+      r.charge > 0 ? 0 : Math.PI,
+    );
+    ctx.stroke();
+  }
 }
 
 export interface Hud {
@@ -46,10 +94,15 @@ export function bindHud(app: AppController, canvas: HTMLCanvasElement): Hud {
   const hudRate = byId<HTMLElement>('hud-rate');
   const hudRhythm = byId<HTMLElement>('hud-rhythm');
   const hudStatus = byId<HTMLElement>('hud-status');
+  const hudRotors = byId<HTMLElement>('hud-rotors');
+  const tips = byId<HTMLCanvasElement>('tips');
+  const tipsCtx = tips.getContext('2d');
+  const tipColor = styles.getPropertyValue('--color-tip').trim() || '#fff';
   const scaleBar = byId<HTMLElement>('scale-bar');
   const scaleLabel = byId<HTMLElement>('scale-label');
   const legend = byId<HTMLElement>('legend-bar');
   const flash = byId<HTMLElement>('shock-flash');
+  const narration = byId<HTMLElement>('narration');
   legend.style.background = cssGradient(VOLTAGE_STOPS);
   scaleLabel.textContent = `${SCALE_BAR_CM} cm`;
 
@@ -61,6 +114,8 @@ export function bindHud(app: AppController, canvas: HTMLCanvasElement): Hud {
   const recent: ({ cycleMs: number; regularity: number } | null)[] = [];
   let seenShocks = app.shockCount;
   let flashTimer = 0;
+  let lastPhase: string | null = null;
+  let narrationTimer = 0;
 
   const update = () => {
     frame++;
@@ -87,9 +142,25 @@ export function bindHud(app: AppController, canvas: HTMLCanvasElement): Hud {
     hudRhythm.textContent = rhythmText;
     hudStatus.textContent = app.status;
     hudStatus.dataset.status = app.status;
+    hudRotors.textContent = app.activity > 0 ? String(app.rotors.length) : '—';
+    drawTips(tips, tipsCtx, app.rotors, tipColor);
 
     const px = (SCALE_BAR_CM / app.sim.sideCm) * canvas.clientWidth;
     scaleBar.style.width = `${Math.round(px)}px`;
+
+    const phase = app.protocolPhase;
+    if (phase !== lastPhase) {
+      lastPhase = phase;
+      window.clearTimeout(narrationTimer);
+      narration.textContent = phase ? (NARRATION[phase] ?? '') : '';
+      narration.classList.toggle('visible', phase !== null);
+      if (phase === 'done' || phase === 'failed') {
+        narrationTimer = window.setTimeout(
+          () => narration.classList.remove('visible'),
+          NARRATION_LINGER_MS,
+        );
+      }
+    }
 
     if (app.shockCount !== seenShocks) {
       seenShocks = app.shockCount;

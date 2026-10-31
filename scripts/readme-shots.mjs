@@ -35,7 +35,15 @@ const page = await browser.newPage({
   viewport: { width: 1280, height: 860 },
   deviceScaleFactor: 1,
 });
-await page.goto(`${base}/`); // auto-induces
-await page.waitForTimeout(9000);
+// Deterministic: drive with the test hook to 6 s of simulated time, then let the HUD settle.
+await page.goto(`${base}/?test=1`);
+await page.waitForFunction(() => window.__reentry !== undefined);
+await page.evaluate(() => {
+  const h = window.__reentry;
+  h.setStepsPerFrame(100);
+  h.induce();
+  while (h.timeMs() < 6000) h.tick(1);
+});
+await page.waitForTimeout(3200);
 await page.screenshot({ path: `${outdir}/ui.png` });
 await browser.close();

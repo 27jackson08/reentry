@@ -23,6 +23,8 @@ export interface ReentryTestHook {
   setPreset(id: string): void;
   setStepsPerFrame(n: number): void;
   ecgSamples(): { t: number; phi: number }[];
+  rotors(): { x: number; y: number; charge: number }[];
+  benchmarkProbe(): Record<string, number>;
   reset(): void;
   pause(): void;
 }
@@ -62,6 +64,8 @@ export function installTestHook(app: AppController): void {
       app.msPerFrame = n * sim.dt;
     },
     ecgSamples: () => app.ecgSamples.map((s) => ({ t: s.t, phi: s.phi })),
+    rotors: () => app.rotors.map((r) => ({ x: r.x, y: r.y, charge: r.charge })),
+    benchmarkProbe: () => sim.benchmarkProbe(),
     reset: () => app.reset(),
     pause: () => {
       app.running = false;

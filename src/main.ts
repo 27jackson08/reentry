@@ -102,6 +102,10 @@ try {
   let slowFrames = 0;
   let lastFrameAt = performance.now();
 
+  // ?stats=1 accumulates per-phase frame timings on window.__frameStats.
+  const stats = params.get('stats') === '1' ? { frames: 0, tick: 0, render: 0, hud: 0 } : null;
+  if (stats) (window as unknown as { __frameStats: typeof stats }).__frameStats = stats;
+
   const frame = (now: number) => {
     const elapsed = now - lastFrameAt;
     lastFrameAt = now;
@@ -114,9 +118,18 @@ try {
       slowFrames = 0;
     }
     resize(canvas);
+    const t0 = performance.now();
     app.tick();
+    const t1 = performance.now();
     app.render(canvas.width, canvas.height);
+    const t2 = performance.now();
     hud.update();
+    if (stats) {
+      stats.frames++;
+      stats.tick += t1 - t0;
+      stats.render += t2 - t1;
+      stats.hud += performance.now() - t2;
+    }
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);

@@ -63,7 +63,7 @@ class StubSim {
     return buf;
   }
   probeAsync() {
-    return this.probe();
+    return { data: this.probe(), timeMs: this.timeMs };
   }
   render() {}
   readState() {
@@ -94,6 +94,29 @@ describe('AppController', () => {
     expect(app.activity).toBe(1);
     expect(app.status).toBe('active');
     expect(app.lastEcg?.t).toBeCloseTo(sim.timeMs);
+    expect(app.ecgSamples).toHaveLength(1);
+  });
+
+  test('rotor detection waits for 40 ms of history, then runs every tick', () => {
+    const { sim, app } = make();
+    app.msPerFrame = 10;
+    sim.probeMaxU = 0.9;
+    for (let i = 0; i < 4; i++) app.tick();
+    expect(app.rotors).toEqual([]); // 30 ms of history: nothing old enough yet
+    app.tick();
+    expect(Array.isArray(app.rotors)).toBe(true); // uniform stub field: no singularities, but detection ran
+    expect(app.rotors).toHaveLength(0);
+  });
+
+  test('a probe older than the last sample is ignored', () => {
+    const { sim, app } = make();
+    app.msPerFrame = 10;
+    sim.probeMaxU = 0.9;
+    app.tick();
+    const first = app.lastEcg;
+    sim.probeAsync = () => ({ data: sim.probe(), timeMs: (first?.t ?? 0) - 5 });
+    app.tick();
+    expect(app.lastEcg).toBe(first);
     expect(app.ecgSamples).toHaveLength(1);
   });
 
